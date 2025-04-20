@@ -4,6 +4,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { useTransactionContext } from "@/contexts/TransactionContext";
 import { SolanaTransaction } from "@/types/transactions";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import CopyTooltip from "./CopyTooltip";
 
 const TransactionTable = () => {
   const { transactions, isConnected } = useTransactionContext();
@@ -14,50 +15,52 @@ const TransactionTable = () => {
     const timer = setTimeout(() => {
       setShowNoData(transactions.length === 0);
     }, 2000);
-    
     return () => clearTimeout(timer);
   }, [transactions.length]);
 
   // Format token amount to display non-zero values properly
   const formatTokenAmount = (amount: string | number | undefined) => {
     if (amount === undefined || amount === null) return '0.00';
-    
-    // Convert to number if it's a string
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
-    // If it's zero or NaN, return 0.00
     if (isNaN(numAmount) || numAmount === 0) return '0.00';
-    
-    // If it's a very small number, preserve the original precision
     if (numAmount < 0.01) {
-      // Show at least 6 decimal places for very small numbers
       const fixedValue = numAmount.toFixed(6);
-      // Remove trailing zeros but keep at least one decimal place
       return parseFloat(fixedValue).toString();
     }
-    
-    // If it's a large number with decimals, show 2 decimal places
     if (numAmount > 1000) {
       return numAmount.toLocaleString('en-US', { maximumFractionDigits: 2 });
     }
-    
-    // For normal numbers, adjust decimal places based on size
     if (numAmount > 100) return numAmount.toFixed(2);
     if (numAmount > 10) return numAmount.toFixed(3);
     if (numAmount > 1) return numAmount.toFixed(4);
-    
-    // For small but visible numbers
     return numAmount.toFixed(5);
   };
 
   // Format token symbol with name if available when token is UNKNOWN
   const formatTokenSymbol = (symbol: string, name?: string) => {
     if (symbol === 'UNKNOWN' && name && name.length > 0) {
-      // Display a shortened version of the token name
       const shortName = name.length > 12 ? name.substring(0, 10) + '...' : name;
       return `${shortName}`;
     }
     return symbol;
+  };
+
+  // Helper for rendering token (with copy-to-address)
+  const TokenCell: React.FC<{ symbol: string; name?: string; address?: string }> = ({ symbol, name, address }) => {
+    const display = (
+      <>
+        <span className="mr-0.5">{formatTokenSymbol(symbol, name)}</span>
+      </>
+    );
+    return address ? (
+      <CopyTooltip
+        value={address}
+        display={display}
+        tooltipLabel="Copy token address"
+      />
+    ) : (
+      display
+    );
   };
 
   return (
@@ -67,7 +70,7 @@ const TransactionTable = () => {
           Connecting to WebSocket... Please wait.
         </div>
       )}
-      
+
       <Table>
         <TableHeader className="bg-terminal-background border-terminal-muted">
           <TableRow>
@@ -82,7 +85,7 @@ const TransactionTable = () => {
         <TableBody>
           {transactions.length > 0 ? (
             transactions.map((tx) => (
-              <TableRow 
+              <TableRow
                 key={tx.id}
                 className="border-terminal-muted hover:bg-terminal-background/50"
               >
@@ -98,15 +101,43 @@ const TransactionTable = () => {
                   )}
                 </TableCell>
                 <TableCell className="text-terminal-text font-mono text-xs">
-                  {tx.walletName || (tx.walletAddress ? tx.walletAddress.slice(0, 4) + '...' + tx.walletAddress.slice(-4) : 'Unknown')}
+                  {tx.walletName ? (
+                    <CopyTooltip
+                      value={tx.walletAddress}
+                      display={tx.walletName}
+                      tooltipLabel="Copy wallet address"
+                    />
+                  ) : tx.walletAddress ? (
+                    <CopyTooltip
+                      value={tx.walletAddress}
+                      display={tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}
+                      tooltipLabel="Copy wallet address"
+                    />
+                  ) : (
+                    "Unknown"
+                  )}
                 </TableCell>
                 <TableCell className="text-terminal-highlight">
-                  {formatTokenAmount(tx.fromAmount)} {formatTokenSymbol(tx.fromToken, tx.fromTokenName)} → {formatTokenAmount(tx.toAmount)} {formatTokenSymbol(tx.toToken, tx.toTokenName)}
+                  <span className="flex items-center gap-1">
+                    <TokenCell
+                      symbol={tx.fromToken}
+                      name={tx.fromTokenName}
+                      address={(tx as any).fromTokenAddress}
+                    />{" "}
+                    {formatTokenAmount(tx.fromAmount)}
+                    <span className="mx-1">→</span>
+                    <TokenCell
+                      symbol={tx.toToken}
+                      name={tx.toTokenName}
+                      address={(tx as any).toTokenAddress}
+                    />{" "}
+                    {formatTokenAmount(tx.toAmount)}
+                  </span>
                 </TableCell>
                 <TableCell className="text-terminal-muted">{tx.program}</TableCell>
                 <TableCell className="text-right text-terminal-text">
-                  ${typeof tx.usdValue === 'number' 
-                    ? tx.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                  ${typeof tx.usdValue === 'number'
+                    ? tx.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '0.00'}
                 </TableCell>
                 <TableCell className="text-right text-terminal-muted text-xs">
@@ -128,3 +159,4 @@ const TransactionTable = () => {
 };
 
 export default TransactionTable;
+
