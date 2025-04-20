@@ -18,17 +18,21 @@ const WalletList: React.FC = () => {
   // Fetch tracked wallets from Supabase
   const fetchTrackedWallets = async () => {
     try {
+      setIsLoading(true);
+      console.log('Fetching tracked wallets...');
+      
       const { data, error } = await supabase
         .from('tracked_wallets')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
+      console.log('Wallets fetched:', data);
       setWallets(data || []);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching tracked wallets:', error);
       toast({
@@ -36,6 +40,7 @@ const WalletList: React.FC = () => {
         description: 'Failed to fetch tracked wallets',
         variant: 'destructive'
       });
+    } finally {
       setIsLoading(false);
     }
   };
