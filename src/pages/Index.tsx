@@ -74,7 +74,13 @@ const Index = () => {
               userSelect: 'none'
             }}
           >{TERMINAL_ASCII}</pre>
-          <p className="text-center text-xs text-terminal-muted font-mono mb-4" style={{ userSelect: 'none' }}>
+          <p 
+            className="text-center text-lg sm:text-xl md:text-2xl font-semibold text-terminal-highlight font-mono mb-6"
+            style={{
+              textShadow: "0 0 12px #00FF00",
+              userSelect: 'none'
+            }}
+          >
             crowdsourced insider information
           </p>
           
