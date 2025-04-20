@@ -13,6 +13,7 @@ class WebSocketService {
   subscribedRooms: Set<string>;
   transactions: Set<string>;
   isConnected: boolean;
+  pingInterval: ReturnType<typeof setInterval> | null;
 
   constructor(wsUrl: string, apiKey: string) {
     this.wsUrl = wsUrl;
@@ -27,6 +28,7 @@ class WebSocketService {
     this.subscribedRooms = new Set();
     this.transactions = new Set();
     this.isConnected = false;
+    this.pingInterval = null;
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -79,6 +81,13 @@ class WebSocketService {
       this.isConnected = false;
       if (type === "main") this.socket = null;
       if (type === "transaction") this.transactionSocket = null;
+      
+      // Clear ping interval if it exists
+      if (this.pingInterval) {
+        clearInterval(this.pingInterval);
+        this.pingInterval = null;
+      }
+      
       this.reconnect();
     };
 
@@ -98,6 +107,7 @@ class WebSocketService {
             console.log(`Skipping duplicate transaction: ${message.data.tx}`);
             return;
           } else if (message.data?.tx) {
+            console.log(`Adding transaction to tracked set: ${message.data.tx}`);
             this.transactions.add(message.data.tx);
           }
           
@@ -105,12 +115,26 @@ class WebSocketService {
             this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
           }
           
+          // Force emit message to all listeners for wallet rooms
+          if (message.room.startsWith('wallet:')) {
+            console.log(`Emitting wallet transaction for room ${message.room}:`, message.data);
+            
+            // Emit directly to the specific wallet room
+            this.emitter.emit(message.room, message.data);
+            
+            // Also emit to a general transactions channel
+            this.emitter.emit('all-transactions', message.data);
+          }
+          
+          // Always emit for the room
           this.emitter.emit(message.room, message.data);
         } else if (message.type === "system") {
           console.log(`System message: ${message.event}`, message);
           
           if (message.event === "subscribed") {
             console.log(`Successfully subscribed to room: ${message.room}`);
+            // Emit room subscription event
+            this.emitter.emit('room-subscribed', message.room);
           }
         } else if (message.type === "pong") {
           console.log(`Received pong response on ${type} socket`);
@@ -133,6 +157,13 @@ class WebSocketService {
       this.transactionSocket.close();
       this.transactionSocket = null;
     }
+    
+    // Clear ping interval if it exists
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    
     this.isConnected = false;
     this.subscribedRooms.clear();
     this.transactions.clear();
@@ -154,8 +185,13 @@ class WebSocketService {
   }
 
   startPingInterval() {
+    // Clear any existing ping interval
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+    }
+    
     // Send a ping every 30 seconds to keep the connection alive
-    const pingInterval = setInterval(() => {
+    this.pingInterval = setInterval(() => {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         try {
           this.socket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
@@ -175,7 +211,7 @@ class WebSocketService {
       }
     }, 30000);
     
-    return pingInterval;
+    return this.pingInterval;
   }
 
   joinRoom(room: string) {

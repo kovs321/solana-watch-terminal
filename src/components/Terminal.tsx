@@ -1,5 +1,6 @@
+
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff, MessageSquare } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff, MessageSquare, Play } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 import WebSocketDebugPanel from './WebSocketDebugPanel';
 import { useTransactionContext } from '@/contexts/TransactionContext';
@@ -76,11 +77,11 @@ const Terminal: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="text-terminal-muted hover:text-terminal-text"
+            className="text-terminal-success hover:text-terminal-text"
             onClick={handleGenerateTest}
             title="Generate test transaction"
           >
-            <MessageSquare size={14} />
+            <Play size={14} />
           </Button>
           
           <Button
@@ -130,8 +131,19 @@ const Terminal: React.FC = () => {
         style={{ maxHeight: 'calc(100vh - 200px)' }}
         onScroll={handleScroll}
       >
-        <div className="text-terminal-text mb-4">
-          $ wallet-tracker --view-transactions
+        <div className="text-terminal-text mb-4 flex items-center justify-between">
+          <div>$ wallet-tracker --view-transactions</div>
+          
+          <div className="flex items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-xs text-terminal-highlight border-terminal-muted bg-black hover:bg-terminal-background/50"
+              onClick={handleGenerateTest}
+            >
+              Generate Test Transaction
+            </Button>
+          </div>
         </div>
         
         <TransactionTable />

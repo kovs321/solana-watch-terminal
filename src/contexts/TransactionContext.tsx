@@ -1,3 +1,4 @@
+
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -56,39 +57,54 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const [wsStatus, setWsStatus] = useState({});
   
   const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
+    console.log("Converting trade to transaction:", trade);
+    
+    // Handle null or undefined values
+    const fromAmount = trade.token?.from?.amount?.toString() || '0';
+    const toAmount = trade.token?.to?.amount?.toString() || '0';
+    
     return {
       id: trade.tx,
       walletAddress: trade.wallet,
       walletName: walletName,
-      type: trade.type.toUpperCase() as 'BUY' | 'SELL',
-      fromToken: trade.token.from.symbol,
-      fromAmount: trade.token.from.amount?.toString() || '0',
-      toToken: trade.token.to.symbol,
-      toAmount: trade.token.to.amount?.toString() || '0',
-      program: trade.program,
-      usdValue: trade.volume,
-      timestamp: trade.time,
-      displayTime: formatTradeDate(trade.time),
+      type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
+      fromToken: trade.token?.from?.symbol || 'UNKNOWN',
+      fromAmount: fromAmount,
+      toToken: trade.token?.to?.symbol || 'UNKNOWN',
+      toAmount: toAmount,
+      program: trade.program || 'Unknown',
+      usdValue: trade.volume || 0,
+      timestamp: trade.time || Date.now(),
+      displayTime: formatTradeDate(trade.time || Date.now()),
     };
   }, []);
   
   const handleNewTransaction = useCallback((trade: TradeInfo) => {
     console.log("Processing new transaction:", trade);
-    const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet.toLowerCase());
     
-    const transaction = convertTradeToTransaction(trade, wallet?.name);
-    console.log("Converted transaction:", transaction);
+    if (!trade || !trade.tx) {
+      console.warn("Invalid trade data received:", trade);
+      return;
+    }
     
-    setTransactions(prev => {
-      const exists = prev.some(tx => tx.id === transaction.id);
-      if (exists) {
-        console.log(`Transaction ${transaction.id} already exists, skipping`);
-        return prev;
-      }
+    try {
+      const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet?.toLowerCase());
+      const transaction = convertTradeToTransaction(trade, wallet?.name);
+      console.log("Converted transaction:", transaction);
       
-      console.log(`Adding new transaction ${transaction.id} to list`);
-      return [transaction, ...prev].slice(0, 100);
-    });
+      setTransactions(prev => {
+        const exists = prev.some(tx => tx.id === transaction.id);
+        if (exists) {
+          console.log(`Transaction ${transaction.id} already exists, skipping`);
+          return prev;
+        }
+        
+        console.log(`Adding new transaction ${transaction.id} to list`);
+        return [transaction, ...prev].slice(0, 100);
+      });
+    } catch (error) {
+      console.error("Error processing transaction:", error);
+    }
   }, [wallets, convertTradeToTransaction]);
   
   const clearTransactions = useCallback(() => {
@@ -117,6 +133,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     });
   }, [wallets, handleNewTransaction]);
   
+  // Initialize WebSocket service
   useEffect(() => {
     console.log("Initializing WebSocket service with API key...");
     const service = new WebSocketService(WS_URL, API_KEY);
@@ -138,6 +155,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     };
   }, []);
   
+  // Set up WebSocket listeners for wallet transactions
   useEffect(() => {
     if (!wsService || !isConnected) {
       console.log("WebSocket not ready or not connected");
@@ -154,6 +172,29 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     // Clean up previous listeners
     wsService.emitter.removeAllListeners();
     
+    // Listen for all transactions (across all wallets)
+    wsService.on('all-transactions', (data) => {
+      console.log("Received transaction from all-transactions channel:", data);
+      handleNewTransaction(data);
+    });
+    
+    // Listen for room subscription confirmations
+    wsService.on('room-subscribed', (room) => {
+      console.log(`Successfully subscribed to room: ${room}`);
+      
+      // If this is a wallet room, fetch its historical trades
+      if (room.startsWith('wallet:')) {
+        const walletAddress = room.split(':')[1];
+        const wallet = wallets.find(w => w.address.toLowerCase() === walletAddress.toLowerCase());
+        
+        if (wallet) {
+          console.log(`Fetching historical trades for wallet ${wallet.name} (${wallet.address})`);
+          fetchHistoricalTrades(wallet.address, wallet.name);
+        }
+      }
+    });
+    
+    // Subscribe to each wallet
     wallets.forEach(wallet => {
       const roomName = `wallet:${wallet.address}`;
       console.log(`Setting up listener for wallet ${wallet.name} (${wallet.address}) in room ${roomName}`);
@@ -164,65 +205,70 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
         console.log(`New transaction for wallet ${wallet.name}:`, data);
         handleNewTransaction(data);
       });
-      
-      console.log(`Fetching historical trades for wallet ${wallet.name} (${wallet.address})`);
-      getWalletTrades(wallet.address)
-        .then(response => {
-          console.log(`Received historical trades for ${wallet.name}:`, response);
+    });
+    
+    const fetchHistoricalTrades = async (walletAddress: string, walletName?: string) => {
+      try {
+        console.log(`Fetching historical trades for wallet ${walletName || walletAddress}`);
+        const response = await getWalletTrades(walletAddress);
+        
+        if (response && response.trades && response.trades.length > 0) {
+          console.log(`Processing ${response.trades.length} historical trades for ${walletName || walletAddress}`);
           
-          if (response && response.trades && response.trades.length > 0) {
-            console.log(`Processing ${response.trades.length} historical trades for ${wallet.name}`);
-            
-            const historicalTransactions = response.trades.map(trade => {
-              const tradeInfo: TradeInfo = {
-                tx: trade.tx,
-                amount: trade.to.amount,
-                priceUsd: trade.price.usd,
-                solVolume: trade.volume.sol,
-                volume: trade.volume.usd,
-                type: trade.from.token.symbol === 'SOL' ? 'buy' : 'sell',
-                wallet: trade.wallet,
-                time: trade.time,
-                program: trade.program,
-                token: {
-                  from: {
-                    name: trade.from.token.name,
-                    symbol: trade.from.token.symbol,
-                    image: trade.from.token.image,
-                    decimals: trade.from.token.decimals,
-                    address: trade.from.address,
-                    amount: trade.from.amount
-                  },
-                  to: {
-                    name: trade.to.token.name,
-                    symbol: trade.to.token.symbol,
-                    image: trade.to.token.image,
-                    decimals: trade.to.token.decimals,
-                    address: trade.to.address,
-                    amount: trade.to.amount
-                  }
+          const historicalTransactions = response.trades.map(trade => {
+            const tradeInfo: TradeInfo = {
+              tx: trade.tx,
+              amount: trade.to.amount,
+              priceUsd: trade.price.usd,
+              solVolume: trade.volume.sol,
+              volume: trade.volume.usd,
+              type: trade.from.token.symbol === 'SOL' ? 'buy' : 'sell',
+              wallet: trade.wallet,
+              time: trade.time,
+              program: trade.program,
+              token: {
+                from: {
+                  name: trade.from.token.name,
+                  symbol: trade.from.token.symbol,
+                  image: trade.from.token.image,
+                  decimals: trade.from.token.decimals,
+                  address: trade.from.address,
+                  amount: trade.from.amount
+                },
+                to: {
+                  name: trade.to.token.name,
+                  symbol: trade.to.token.symbol,
+                  image: trade.to.token.image,
+                  decimals: trade.to.token.decimals,
+                  address: trade.to.address,
+                  amount: trade.to.amount
                 }
-              };
-              
-              return convertTradeToTransaction(tradeInfo, wallet.name);
-            });
+              }
+            };
             
-            setTransactions(prev => {
-              const combined = [...prev, ...historicalTransactions];
-              const unique = Array.from(
-                new Map(combined.map(tx => [tx.id, tx])).values()
-              ).sort((a, b) => b.timestamp - a.timestamp);
-              
-              console.log(`Added ${historicalTransactions.length} historical transactions`);
-              return unique.slice(0, 100);
-            });
-          } else {
-            console.log(`No historical trades found for wallet ${wallet.name}`);
-          }
-        })
-        .catch(error => {
-          console.error(`Error fetching historical trades for ${wallet.name}:`, error);
-        });
+            return convertTradeToTransaction(tradeInfo, walletName);
+          });
+          
+          setTransactions(prev => {
+            const combined = [...prev, ...historicalTransactions];
+            const unique = Array.from(
+              new Map(combined.map(tx => [tx.id, tx])).values()
+            ).sort((a, b) => b.timestamp - a.timestamp);
+            
+            console.log(`Added ${historicalTransactions.length} historical transactions`);
+            return unique.slice(0, 100);
+          });
+        } else {
+          console.log(`No historical trades found for wallet ${walletName || walletAddress}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching historical trades for ${walletName || walletAddress}:`, error);
+      }
+    };
+    
+    // Fetch historical transactions for all wallets
+    wallets.forEach(wallet => {
+      fetchHistoricalTrades(wallet.address, wallet.name);
     });
     
     return () => {
