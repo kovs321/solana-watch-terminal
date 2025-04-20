@@ -1,3 +1,4 @@
+
 import EventEmitter from "eventemitter3";
 
 class WebSocketService {
@@ -40,7 +41,8 @@ class WebSocketService {
     }
 
     try {
-      const authenticatedUrl = `${this.wsUrl}?apiKey=${this.apiKey}`;
+      // Use the correct query parameter name 'api_key' as specified
+      const authenticatedUrl = `${this.wsUrl}?api_key=${this.apiKey}`;
       console.log(`Connecting to WebSocket server at ${authenticatedUrl}...`);
       
       this.socket = new WebSocket(authenticatedUrl);
@@ -141,6 +143,7 @@ class WebSocketService {
     console.log(`Joining room: ${room}`);
     this.subscribedRooms.add(room);
     
+    // Always use transaction socket for wallet room subscriptions
     const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
@@ -200,6 +203,7 @@ class WebSocketService {
       this.transactionSocket.readyState === WebSocket.OPEN
     ) {
       for (const room of this.subscribedRooms) {
+        // Always use transaction socket for wallet room subscriptions during resubscribe
         const socket = room.startsWith("wallet:") || room.includes("transaction")
           ? this.transactionSocket
           : this.socket;
@@ -215,3 +219,4 @@ class WebSocketService {
 }
 
 export default WebSocketService;
+
