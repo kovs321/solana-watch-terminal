@@ -1,3 +1,4 @@
+
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -205,8 +206,11 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
         const historicalData = await getWalletTrades(wallet.address);
         
         if (historicalData?.trades?.length) {
-          const historicalTransactions = historicalData.trades.map(trade => 
-            convertTradeToTransaction({
+          console.log(`Received ${historicalData.trades.length} historical trades for ${wallet.name}`);
+          
+          const historicalTransactions = historicalData.trades.map(trade => {
+            // Create a properly formatted TradeInfo object from historical data
+            const tradeInfo: TradeInfo = {
               tx: trade.tx,
               wallet: trade.wallet,
               type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
@@ -214,11 +218,17 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
                 from: trade.from.token,
                 to: trade.to.token
               },
+              // Add the missing required properties
+              amount: trade.to.amount,
+              priceUsd: trade.price.usd,
+              solVolume: parseFloat(trade.volume.sol.toString()),
               volume: trade.volume.usd,
               time: trade.time,
               program: trade.program
-            }, wallet.name)
-          );
+            };
+            
+            return convertTradeToTransaction(tradeInfo, wallet.name);
+          });
 
           setTransactions(prev => {
             const merged = [...prev, ...historicalTransactions];
@@ -227,15 +237,23 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
             ).sort((a, b) => b.timestamp - a.timestamp);
             return uniqueTransactions.slice(0, 100);
           });
+        } else {
+          console.log(`No historical trades found for ${wallet.name}`);
         }
       } catch (error) {
         console.error(`Error fetching historical trades for ${wallet.name}:`, error);
+        toast({
+          title: `Error Fetching Trades`,
+          description: `Could not load historical trades for ${wallet.name}`,
+          variant: "destructive"
+        });
       }
 
       wsService.joinRoom(roomName);
+      console.debug(`[CTX] Subscribed to ${roomName}`);
       
       wsService.on(roomName, (data) => {
-        console.log(`New transaction for wallet ${wallet.name}:`, data);
+        console.debug(`[CTX] Live trade ${roomName}:`, data);
         handleNewTransaction(data);
       });
     });
@@ -258,7 +276,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   };
   
   return (
-    <TransactionContext.Provider value={value}>
+    <TransactionContext.Provider value={{ transactions, clearTransactions, isConnected, wsStatus, generateTestTransaction }}>
       {children}
     </TransactionContext.Provider>
   );
