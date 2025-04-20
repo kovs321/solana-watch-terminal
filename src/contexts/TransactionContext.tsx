@@ -1,39 +1,11 @@
-import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { FC, ReactNode, createContext, useCallback, useContext, useState } from 'react';
 import { useWalletContext } from './WalletContext';
-import WebSocketService from '@/services/WebSocketService';
-import { 
-  TradeInfo, 
-  WS_URL, 
-  API_KEY,
-  getWalletTrades,
-  formatTradeDate,
-  simulateTrade
-} from '@/services/SolanaTrackerService';
+import { getWalletTrades, simulateTrade } from '@/services/SolanaTrackerService';
 import { toast } from '@/components/ui/use-toast';
-
-export interface SolanaTransaction {
-  id: string;
-  walletAddress: string;
-  walletName?: string;
-  type: 'BUY' | 'SELL';
-  fromToken: string;
-  fromAmount: number | string;
-  toToken: string;
-  toAmount: number | string;
-  program: string;
-  usdValue: number;
-  timestamp: number;
-  displayTime: string;
-}
-
-interface TransactionContextType {
-  transactions: SolanaTransaction[];
-  clearTransactions: () => void;
-  isConnected: boolean;
-  wsStatus: any;
-  generateTestTransaction: () => void;
-  subscribeToTestWallet: (address: string) => Promise<void>;
-}
+import { useWebSocketConnection } from '@/hooks/useWebSocketConnection';
+import { useTradeProcessor } from '@/hooks/useTradeProcessor';
+import { SolanaTransaction, TransactionContextType } from '@/types/transactions';
+import { TradeInfo } from '@/services/SolanaTrackerService';
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
@@ -52,68 +24,10 @@ interface TransactionProviderProps {
 export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) => {
   const { wallets } = useWalletContext();
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
-  const [wsService, setWsService] = useState<WebSocketService | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [wsStatus, setWsStatus] = useState({});
-  
-  const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
-    console.log("Converting trade to transaction:", trade);
-    
-    // Extract token information safely with fallbacks
-    const fromToken = trade.token?.from?.symbol || "UNKNOWN";
-    const toToken = trade.token?.to?.symbol || "UNKNOWN";
-    
-    // Handle amounts safely, ensuring proper number handling
-    let fromAmount: number | string = 0;
-    let toAmount: number | string = 0;
-    
-    // Extract 'from' token amount, checking all possible paths
-    if (trade.token?.from?.amount !== undefined) {
-      fromAmount = trade.token.from.amount;
-    } else if (trade.from?.amount !== undefined) {
-      fromAmount = trade.from.amount;
-    }
-    
-    // Extract 'to' token amount, checking all possible paths
-    if (trade.token?.to?.amount !== undefined) {
-      toAmount = trade.token.to.amount;
-    } else if (trade.to?.amount !== undefined) {
-      toAmount = trade.to.amount;
-    } else if (trade.amount !== undefined) {
-      toAmount = trade.amount;
-    }
-    
-    // Handle USD value safely
-    let usdValue = 0;
-    if (typeof trade.volume === 'number') {
-      usdValue = trade.volume;
-    } else if (trade.volume && typeof trade.volume === 'object') {
-      // Use a type assertion to handle the potentially unknown structure
-      const volumeObj = trade.volume as { usd?: number };
-      if (volumeObj.usd !== undefined) {
-        usdValue = volumeObj.usd;
-      }
-    }
-    
-    return {
-      id: trade.tx,
-      walletAddress: trade.wallet,
-      walletName: walletName || undefined,
-      type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
-      fromToken,
-      fromAmount,
-      toToken,
-      toAmount,
-      program: trade.program || 'Unknown',
-      usdValue,
-      timestamp: trade.time || Date.now(),
-      displayTime: formatTradeDate(trade.time || Date.now()),
-    };
-  }, []);
+  const { wsService, isConnected, wsStatus } = useWebSocketConnection();
+  const { convertTradeToTransaction } = useTradeProcessor();
   
   const handleNewTransaction = useCallback((trade: TradeInfo) => {
-    console.log("Processing new transaction:", trade);
-    
     if (!trade || !trade.tx) {
       console.warn("Invalid trade data received:", trade);
       return;
@@ -122,7 +36,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     try {
       const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet?.toLowerCase());
       const transaction = convertTradeToTransaction(trade, wallet?.name);
-      console.log("Converted transaction:", transaction);
       
       setTransactions(prev => {
         const exists = prev.some(tx => tx.id === transaction.id);
@@ -131,7 +44,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
           return prev;
         }
         
-        console.log(`Adding new transaction ${transaction.id} to list`);
         return [transaction, ...prev].slice(0, 100);
       });
     } catch (error) {
@@ -156,7 +68,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     const randomWallet = wallets[Math.floor(Math.random() * wallets.length)];
     const testTrade = simulateTrade(randomWallet.address, randomWallet.name);
     
-    console.log("Generated test transaction:", testTrade);
     handleNewTransaction(testTrade);
     
     toast({
@@ -259,146 +170,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       title: "Test Wallet Monitoring",
       description: `Successfully subscribed to ${address.slice(0, 4)}...${address.slice(-4)}`,
     });
-  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
-  
-  useEffect(() => {
-    console.log("Initializing WebSocket service...");
-    
-    if (!WS_URL || !API_KEY) {
-      console.error("Missing WebSocket URL or API Key");
-      toast({
-        title: "WebSocket Configuration Error",
-        description: "Missing WebSocket URL or API Key",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      const service = new WebSocketService(WS_URL, API_KEY);
-      setWsService(service);
-      console.log("WebSocket service initialized");
-    } catch (error) {
-      console.error("Failed to initialize WebSocket service:", error);
-      toast({
-        title: "WebSocket Error",
-        description: "Failed to initialize WebSocket connection",
-        variant: "destructive"
-      });
-    }
-    
-    return () => {
-      console.log("Cleaning up WebSocket service...");
-      if (wsService) {
-        wsService.disconnect();
-      }
-    };
-  }, []);
-  
-  useEffect(() => {
-    if (!wsService) return;
-    
-    const statusInterval = setInterval(() => {
-      const status = wsService.getConnectionStatus();
-      setIsConnected(status.connected);
-      setWsStatus(status);
-    }, 1000);
-    
-    return () => clearInterval(statusInterval);
-  }, [wsService]);
-  
-  useEffect(() => {
-    if (!wsService || !isConnected || wallets.length === 0) {
-      console.log("Cannot setup wallet listeners - prerequisites not met");
-      return;
-    }
-
-    console.log(`Setting up listeners for ${wallets.length} wallets`);
-    wsService.emitter.removeAllListeners();
-    
-    wallets.forEach(wallet => {
-      wsService.leaveRoom(`wallet:${wallet.address}`);
-    });
-
-    wsService.on('all-transactions', (data) => {
-      console.log("Received transaction from all-transactions channel:", data);
-      handleNewTransaction(data);
-    });
-
-    wallets.forEach(async (wallet) => {
-      const roomName = `wallet:${wallet.address}`;
-      console.log(`Setting up listener for wallet ${wallet.name} (${wallet.address})`);
-
-      try {
-        console.log(`Fetching historical trades for ${wallet.name}`);
-        const historicalData = await getWalletTrades(wallet.address);
-        
-        if (historicalData?.trades?.length) {
-          console.log(`Received ${historicalData.trades.length} historical trades for ${wallet.name}`);
-          
-          const historicalTransactions = historicalData.trades.map(trade => {
-            // Create a properly formatted TradeInfo object from historical data
-            const tradeInfo: TradeInfo = {
-              tx: trade.tx,
-              wallet: trade.wallet,
-              type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
-              token: {
-                from: {
-                  ...trade.from.token,
-                  amount: trade.from.amount
-                },
-                to: {
-                  ...trade.to.token,
-                  amount: trade.to.amount
-                }
-              },
-              // Add the missing required properties
-              amount: trade.to.amount,
-              priceUsd: trade.price.usd,
-              solVolume: parseFloat(trade.volume.sol.toString()),
-              volume: trade.volume.usd,
-              time: trade.time,
-              program: trade.program
-            };
-            
-            return convertTradeToTransaction(tradeInfo, wallet.name);
-          });
-
-          setTransactions(prev => {
-            const merged = [...prev, ...historicalTransactions];
-            const uniqueTransactions = Array.from(
-              new Map(merged.map(tx => [tx.id, tx])).values()
-            ).sort((a, b) => b.timestamp - a.timestamp);
-            return uniqueTransactions.slice(0, 100);
-          });
-        } else {
-          console.log(`No historical trades found for ${wallet.name}`);
-        }
-      } catch (error) {
-        console.error(`Error fetching historical trades for ${wallet.name}:`, error);
-        toast({
-          title: `Error Fetching Trades`,
-          description: `Could not load historical trades for ${wallet.name}`,
-          variant: "destructive"
-        });
-      }
-
-      wsService.joinRoom(roomName);
-      console.debug(`[CTX] Subscribed to ${roomName}`);
-      
-      wsService.on(roomName, (data) => {
-        console.debug(`[CTX] Live trade ${roomName}:`, data);
-        handleNewTransaction(data);
-      });
-    });
-
-    return () => {
-      console.log("Cleaning up wallet listeners...");
-      wallets.forEach(wallet => {
-        wsService.leaveRoom(`wallet:${wallet.address}`);
-      });
-      wsService.emitter.removeAllListeners();
-    };
   }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
   
   const value = {
