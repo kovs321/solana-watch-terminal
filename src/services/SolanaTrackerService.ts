@@ -1,8 +1,9 @@
+
 import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
 const WS_URL = 'wss://stream.solanatracker.io';
-const API_KEY = 'YOUR_API_KEY_HERE'; // Replace this with your Solana Tracker API key
+const API_KEY = 'YOUR_API_KEY_HERE'; // Replace this with your actual Solana Tracker API key
 
 // Types for API responses
 export interface TokenInfo {
@@ -60,16 +61,6 @@ export interface WalletTradeResponse {
   nextCursor: number;
   hasNextPage: boolean;
 }
-
-// Get API key from localStorage
-const getApiKey = () => {
-  return localStorage.getItem('solana_tracker_api_key') || '';
-};
-
-// Save API key to localStorage
-export const saveApiKey = (apiKey: string) => {
-  localStorage.setItem('solana_tracker_api_key', apiKey);
-};
 
 // Get wallet trades
 export const getWalletTrades = async (walletAddress: string, cursor?: number) => {
