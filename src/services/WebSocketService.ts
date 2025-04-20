@@ -61,31 +61,29 @@ class WebSocketService {
     socket.onopen = () => {
       console.log(`[WebSocket ${type}] Connection established`);
       
-      // Enhanced logging for connection status
-      console.group(`WebSocket ${type} Connection`);
+      console.group(`WebSocket ${type} Connection Details`);
       console.log('Socket State:', socket.readyState);
       console.log('Subscribed Rooms:', Array.from(this.subscribedRooms));
       console.groupEnd();
       
-      // Send a more detailed ping message
+      // Enhanced heartbeat
       if (socket.readyState === WebSocket.OPEN) {
         try {
-          const pingPayload = { 
+          const heartbeat = { 
             type: 'ping', 
             client: 'solana-tracker', 
             timestamp: new Date().toISOString(),
             socketType: type 
           };
-          socket.send(JSON.stringify(pingPayload));
-          console.log(`[WebSocket ${type}] Sent enhanced ping`);
+          socket.send(JSON.stringify(heartbeat));
+          console.log(`[WebSocket ${type}] Sent heartbeat`);
         } catch (e) {
-          console.error(`[WebSocket ${type}] Ping send error:`, e);
+          console.error(`[WebSocket ${type}] Heartbeat error:`, e);
         }
       }
       
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      
       this.resubscribeToRooms();
     };
 
@@ -113,60 +111,71 @@ class WebSocketService {
         console.log(`[WebSocket ${type}] Raw Message:`, event.data);
         const message = JSON.parse(event.data);
         
+        // Log all incoming messages for debugging
         console.group(`[WebSocket ${type}] Parsed Message`);
         console.log('Type:', message.type);
         console.log('Full Message:', message);
         console.groupEnd();
         
-        if (message.type === 'pong') {
-          console.log(`[WebSocket ${type}] Received pong`);
+        // Handle system messages
+        if (message.type === "system") {
+          console.log(`System message: ${message.event}`, message);
+          if (message.event === "subscribed") {
+            console.log(`Successfully subscribed to room: ${message.room}`);
+            this.emitter.emit('room-subscribed', message.room);
+          }
           return;
         }
         
+        // Handle heartbeat messages
+        if (message.type === "ping") {
+          console.log(`[WebSocket ${type}] Received ping, sending pong`);
+          socket.send(JSON.stringify({ 
+            type: "pong",
+            client: "solana-tracker",
+            timestamp: new Date().toISOString()
+          }));
+          return;
+        }
+        
+        if (message.type === "pong") {
+          console.log(`[WebSocket ${type}] Received pong confirmation`);
+          return;
+        }
+        
+        // Handle transaction messages
         if (message.type === "message") {
-          console.log(`Processed message for room ${message.room}:`, message.data);
+          console.log(`Received message for room ${message.room}:`, message.data);
           
+          // Deduplicate transactions
           if (message.data?.tx && this.transactions.has(message.data.tx)) {
             console.log(`Skipping duplicate transaction: ${message.data.tx}`);
             return;
-          } else if (message.data?.tx) {
-            console.log(`Adding transaction to tracked set: ${message.data.tx}`);
+          }
+          
+          if (message.data?.tx) {
+            console.log(`Adding new transaction: ${message.data.tx}`);
             this.transactions.add(message.data.tx);
           }
           
+          // Handle price updates
           if (message.room.includes('price:')) {
             this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
           }
           
-          // Force emit message to all listeners for wallet rooms
+          // Handle wallet transactions
           if (message.room.startsWith('wallet:')) {
-            console.log(`Emitting wallet transaction for room ${message.room}:`, message.data);
-            
-            // Emit directly to the specific wallet room
+            console.log(`Emitting wallet transaction for ${message.room}:`, message.data);
             this.emitter.emit(message.room, message.data);
-            
-            // Also emit to a general transactions channel
             this.emitter.emit('all-transactions', message.data);
           }
           
-          // Always emit for the room
+          // Always emit for the specific room
           this.emitter.emit(message.room, message.data);
-        } else if (message.type === "system") {
-          console.log(`System message: ${message.event}`, message);
-          
-          if (message.event === "subscribed") {
-            console.log(`Successfully subscribed to room: ${message.room}`);
-            // Emit room subscription event
-            this.emitter.emit('room-subscribed', message.room);
-          }
-        } else if (message.type === "pong") {
-          console.log(`Received pong response on ${type} socket`);
-        } else {
-          console.log(`Unknown message type on ${type} socket:`, message);
         }
       } catch (error) {
-        console.error(`[WebSocket ${type}] Message Parse Error:`, error);
-        console.error('Raw Message Data:', event.data);
+        console.error(`[WebSocket ${type}] Parse Error:`, error);
+        console.error('Raw Message:', event.data);
       }
     };
   }
@@ -238,31 +247,31 @@ class WebSocketService {
   }
 
   joinRoom(room: string) {
-    console.log(`[WebSocketService] Attempting to join room: ${room}`);
+    console.log(`[WebSocket] Joining room: ${room}`);
     
+    // Always use transaction socket for wallet-related rooms
     const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
       
     if (!socket) {
-      console.error(`[WebSocketService] No socket available for room: ${room}`);
+      console.error(`[WebSocket] No socket available for room: ${room}`);
       return;
     }
     
     if (socket.readyState !== WebSocket.OPEN) {
-      console.warn(`[WebSocketService] Socket not open for room: ${room}. Current state: ${socket.readyState}`);
+      console.warn(`[WebSocket] Socket not ready for room: ${room}. State: ${socket.readyState}`);
       return;
     }
     
     try {
       const message = JSON.stringify({ type: "join", room });
-      console.log(`[WebSocketService] Sending join request:`, message);
       socket.send(message);
+      console.log(`[WebSocket] Sent join request for ${room} on ${room.startsWith("wallet:") ? "transaction" : "main"} socket`);
+      this.subscribedRooms.add(room);
     } catch (error) {
-      console.error(`[WebSocketService] Error joining room ${room}:`, error);
+      console.error(`[WebSocket] Failed to join room ${room}:`, error);
     }
-    
-    this.subscribedRooms.add(room);
   }
 
   leaveRoom(room: string) {
