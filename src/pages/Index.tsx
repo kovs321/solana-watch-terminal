@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
 import AddWalletForm from '@/components/AddWalletForm';
@@ -45,6 +46,18 @@ function MonitoringButton() {
     </Button>;
 }
 
+function AutoMonitorTrigger() {
+  const { startMonitoringAllWallets, monitoringActive } = useTransactionContext();
+  useEffect(() => {
+    if (!monitoringActive) {
+      startMonitoringAllWallets();
+    }
+    // No dependencies other than the 2, don't call on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monitoringActive, startMonitoringAllWallets]);
+  return null;
+}
+
 const Index = () => {
   useInitialWallets();
   return <TransactionProvider>
@@ -64,6 +77,7 @@ const Index = () => {
             <ConnectWallet />
             <MonitoringButton />
           </div>
+          <AutoMonitorTrigger />
 
           <div className="grid grid-cols-1 gap-4 mb-6">
             <div className="flex justify-center">
@@ -85,3 +99,4 @@ const Index = () => {
 };
 
 export default Index;
+
