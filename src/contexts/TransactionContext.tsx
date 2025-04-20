@@ -87,7 +87,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     return {
       id: trade.tx,
       walletAddress: trade.wallet,
-      walletName: walletName || "Test Wallet",
+      walletName: walletName || undefined,
       type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
       fromToken,
       fromAmount,
@@ -388,7 +388,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   };
   
   return (
-    <TransactionContext.Provider value={{ transactions, clearTransactions, isConnected, wsStatus, generateTestTransaction, subscribeToTestWallet }}>
+    <TransactionContext.Provider value={value}>
       {children}
     </TransactionContext.Provider>
   );
