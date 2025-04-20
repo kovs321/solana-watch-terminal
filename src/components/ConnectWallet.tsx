@@ -39,8 +39,8 @@ const ConnectWallet: React.FC = () => {
             Connected
           </Button>
           <Button
-            variant="destructive"
-            className="bg-terminal-error hover:bg-terminal-error/80 text-white font-mono flex items-center"
+            variant="outline"
+            className="text-terminal-error border-terminal-error font-mono flex items-center px-4 py-2 rounded-md hover:bg-terminal-error/20 transition-colors"
             onClick={() => disconnect()}
           >
             <LogOut size={16} className="mr-2" />
@@ -64,3 +64,4 @@ const ConnectWallet: React.FC = () => {
 };
 
 export default ConnectWallet;
+
