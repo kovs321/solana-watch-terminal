@@ -7,7 +7,7 @@ import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from '@/components/ui/button';
-import { Radio, file-spreadsheet } from 'lucide-react';
+import { Radio, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useWalletContext } from '@/contexts/WalletContext';
 
@@ -99,7 +99,7 @@ function ExportWalletsCSVButton() {
       title="Export all wallets as CSV file"
       disabled={wallets.length === 0}
     >
-      <file-spreadsheet size={14} />
+      <FileSpreadsheet size={14} />
       Export as CSV
     </Button>
   );
