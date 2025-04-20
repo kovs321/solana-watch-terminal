@@ -1,3 +1,4 @@
+
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import { getWalletTrades, simulateTrade } from '@/services/SolanaTrackerService';
@@ -26,6 +27,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
   const { wsService, isConnected, wsStatus } = useWebSocketConnection();
   const { convertTradeToTransaction } = useTradeProcessor();
+  const [monitoringActive, setMonitoringActive] = useState(false);
 
   const currentWalletSubsRef = useRef<Set<string>>(new Set());
 
@@ -53,46 +55,79 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     }
   }, [wallets, convertTradeToTransaction]);
 
-  useEffect(() => {
-    if (!wsService || !isConnected) return;
+  const startMonitoringAllWallets = useCallback(() => {
+    if (!wsService || !isConnected) {
+      toast({
+        title: "Connection Error",
+        description: "WebSocket is not connected. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const subscribeToWallet = (address: string, name?: string) => {
       const roomName = `wallet:${address}`;
       wsService.joinRoom(roomName);
+      console.log(`Subscribed to wallet: ${name || address.slice(0, 4) + '...' + address.slice(-4)}`);
+      
       const handler = (data: TradeInfo) => {
         if (data) {
           data.walletName = name || undefined;
         }
         handleNewTransaction(data);
       };
+      
       wsService.on(roomName, handler);
+      currentWalletSubsRef.current.add(address);
 
       return () => wsService.off(roomName, handler);
     };
 
-    const unsubHandlers: Array<() => void> = [];
-
-    wallets.forEach(wallet => {
-      if (!currentWalletSubsRef.current.has(wallet.address)) {
-        const off = subscribeToWallet(wallet.address, wallet.name);
-        unsubHandlers.push(off);
-        currentWalletSubsRef.current.add(wallet.address);
-      }
-    });
-
+    // Unsubscribe from any wallet that's no longer in the list
     const currentWalletsSet = new Set(wallets.map(w => w.address));
     currentWalletSubsRef.current.forEach(address => {
       if (!currentWalletsSet.has(address)) {
         const roomName = `wallet:${address}`;
         wsService.leaveRoom(roomName);
         currentWalletSubsRef.current.delete(address);
+        console.log(`Unsubscribed from wallet: ${address}`);
       }
     });
 
-    return () => {
-      unsubHandlers.forEach(unsub => unsub());
-    };
+    // Subscribe to all wallets
+    let count = 0;
+    wallets.forEach(wallet => {
+      if (!currentWalletSubsRef.current.has(wallet.address)) {
+        subscribeToWallet(wallet.address, wallet.name);
+        count++;
+      }
+    });
+
+    setMonitoringActive(true);
+    
+    toast({
+      title: "Wallet Monitoring Started",
+      description: `Now monitoring ${count} new wallets for transactions`,
+    });
   }, [wallets, wsService, isConnected, handleNewTransaction]);
+
+  // Auto-subscribe when component mounts or connection changes
+  useEffect(() => {
+    if (isConnected && wsService && wallets.length > 0 && !monitoringActive) {
+      console.log("Auto-starting monitoring for all wallets...");
+      startMonitoringAllWallets();
+    }
+    
+    return () => {
+      if (wsService) {
+        currentWalletSubsRef.current.forEach(address => {
+          const roomName = `wallet:${address}`;
+          wsService.leaveRoom(roomName);
+        });
+        currentWalletSubsRef.current.clear();
+      }
+    };
+  }, [isConnected, wsService, wallets.length, monitoringActive, startMonitoringAllWallets]);
 
   const clearTransactions = useCallback(() => {
     setTransactions([]);
@@ -212,6 +247,8 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     wsStatus,
     generateTestTransaction,
     subscribeToTestWallet,
+    startMonitoringAllWallets,
+    monitoringActive
   };
 
   return (

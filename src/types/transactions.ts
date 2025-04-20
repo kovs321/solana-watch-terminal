@@ -21,4 +21,6 @@ export interface TransactionContextType {
   wsStatus: any;
   generateTestTransaction: () => void;
   subscribeToTestWallet: (address: string) => Promise<void>;
+  startMonitoringAllWallets: () => void;
+  monitoringActive: boolean;
 }

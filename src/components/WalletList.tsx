@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trash2 } from 'lucide-react'; // Import the icon for delete functionality
+import { Trash2, Radio } from 'lucide-react'; // Added Radio icon for monitoring
+import { useTransactionContext } from '@/contexts/TransactionContext';
+import { Button } from '@/components/ui/button';
 
 interface TrackedWallet {
   wallet_address: string;
@@ -14,6 +16,7 @@ const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const { startMonitoringAllWallets, monitoringActive } = useTransactionContext();
 
   const fetchTrackedWallets = async () => {
     try {
@@ -91,9 +94,21 @@ const WalletList: React.FC = () => {
 
   return (
     <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4">
-      <h2 className="text-terminal-highlight font-mono text-sm mb-3 border-b border-gray-800 pb-2">
-        Tracked Wallets ({wallets.length})
-      </h2>
+      <div className="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+        <h2 className="text-terminal-highlight font-mono text-sm">
+          Tracked Wallets ({wallets.length})
+        </h2>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
+          onClick={startMonitoringAllWallets}
+          disabled={monitoringActive || wallets.length === 0}
+        >
+          <Radio size={14} className="mr-1" />
+          {monitoringActive ? 'Monitoring Active' : 'Start Monitoring'}
+        </Button>
+      </div>
       
       {wallets.length === 0 ? (
         <div className="text-terminal-muted italic text-sm">
