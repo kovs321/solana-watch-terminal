@@ -12,6 +12,7 @@ class WebSocketService {
   emitter: EventEmitter;
   subscribedRooms: Set<string>;
   transactions: Set<string>;
+  isConnected: boolean;
 
   constructor(wsUrl: string) {
     this.wsUrl = wsUrl;
@@ -24,6 +25,7 @@ class WebSocketService {
     this.emitter = new EventEmitter();
     this.subscribedRooms = new Set();
     this.transactions = new Set();
+    this.isConnected = false;
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -37,6 +39,7 @@ class WebSocketService {
     }
 
     try {
+      console.log(`Connecting to WebSocket server at ${this.wsUrl}...`);
       this.socket = new WebSocket(this.wsUrl);
       this.transactionSocket = new WebSocket(this.wsUrl);
       this.setupSocketListeners(this.socket, "main");
@@ -50,33 +53,54 @@ class WebSocketService {
   setupSocketListeners(socket: WebSocket, type: string) {
     socket.onopen = () => {
       console.log(`Connected to ${type} WebSocket server`);
+      this.isConnected = true;
       this.reconnectAttempts = 0;
       this.resubscribeToRooms();
     };
 
-    socket.onclose = () => {
-      console.log(`Disconnected from ${type} WebSocket server`);
+    socket.onclose = (event) => {
+      console.log(`Disconnected from ${type} WebSocket server`, event);
+      this.isConnected = false;
       if (type === "main") this.socket = null;
       if (type === "transaction") this.transactionSocket = null;
       this.reconnect();
     };
 
+    socket.onerror = (error) => {
+      console.error(`WebSocket ${type} error:`, error);
+    };
+
     socket.onmessage = (event) => {
       try {
+        console.log(`Received ${type} message:`, event.data);
         const message = JSON.parse(event.data);
+        
         if (message.type === "message") {
+          console.log(`Processed message for room ${message.room}:`, message.data);
+          
           if (message.data?.tx && this.transactions.has(message.data.tx)) {
+            console.log(`Skipping duplicate transaction: ${message.data.tx}`);
             return;
           } else if (message.data?.tx) {
             this.transactions.add(message.data.tx);
           }
+          
           if (message.room.includes('price:')) {
             this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
           }
+          
           this.emitter.emit(message.room, message.data);
+        } else if (message.type === "system") {
+          console.log(`System message: ${message.event}`, message);
+          
+          // Handle subscription confirmation
+          if (message.event === "subscribed") {
+            console.log(`Successfully subscribed to room: ${message.room}`);
+          }
         }
       } catch (error) {
         console.error("Error processing message:", error);
+        console.error("Raw message data:", event.data);
       }
     };
   }
@@ -90,6 +114,7 @@ class WebSocketService {
       this.transactionSocket.close();
       this.transactionSocket = null;
     }
+    this.isConnected = false;
     this.subscribedRooms.clear();
     this.transactions.clear();
   }
@@ -110,26 +135,37 @@ class WebSocketService {
   }
 
   joinRoom(room: string) {
+    console.log(`Joining room: ${room}`);
     this.subscribedRooms.add(room);
+    
     const socket = room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
+      
     if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "join", room }));
+      const message = JSON.stringify({ type: "join", room });
+      console.log(`Sending join request for room ${room}:`, message);
+      socket.send(message);
+    } else {
+      console.warn(`Cannot join room ${room}, socket not ready (state: ${socket?.readyState})`);
     }
   }
 
   leaveRoom(room: string) {
+    console.log(`Leaving room: ${room}`);
     this.subscribedRooms.delete(room);
+    
     const socket = room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
+      
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "leave", room }));
     }
   }
 
   on(room: string, listener: (data: any) => void) {
+    console.log(`Adding listener for room: ${room}`);
     this.emitter.on(room, listener);
   }
 
@@ -141,7 +177,18 @@ class WebSocketService {
     return this.socket;
   }
 
+  getConnectionStatus() {
+    return {
+      connected: this.isConnected,
+      mainSocketState: this.socket?.readyState,
+      transactionSocketState: this.transactionSocket?.readyState,
+      subscribedRooms: Array.from(this.subscribedRooms)
+    };
+  }
+
   resubscribeToRooms() {
+    console.log(`Resubscribing to ${this.subscribedRooms.size} rooms`);
+    
     if (
       this.socket &&
       this.socket.readyState === WebSocket.OPEN &&
@@ -152,8 +199,13 @@ class WebSocketService {
         const socket = room.includes("transaction")
           ? this.transactionSocket
           : this.socket;
-        socket.send(JSON.stringify({ type: "join", room }));
+          
+        const message = JSON.stringify({ type: "join", room });
+        console.log(`Resubscribing to room ${room}:`, message);
+        socket.send(message);
       }
+    } else {
+      console.warn("Cannot resubscribe to rooms, sockets not ready");
     }
   }
 }

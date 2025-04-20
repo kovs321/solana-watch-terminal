@@ -13,6 +13,7 @@ interface TrackedWallet {
 const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const fetchTrackedWallets = async () => {
     try {
@@ -39,6 +40,36 @@ const WalletList: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteWallet = async (walletAddress: string, walletName: string) => {
+    try {
+      setIsDeleting(walletAddress);
+      
+      const { error } = await supabase
+        .from('wallet_tracking')
+        .delete()
+        .eq('wallet_address', walletAddress);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setWallets(wallets.filter(wallet => wallet.wallet_address !== walletAddress));
+      
+      toast({
+        title: 'Wallet removed',
+        description: `${walletName} has been removed from tracking`,
+      });
+    } catch (error) {
+      console.error('Error deleting wallet:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete wallet',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -81,6 +112,14 @@ const WalletList: React.FC = () => {
                   {wallet.wallet_address}
                 </div>
               </div>
+              <button
+                className="text-terminal-muted hover:text-terminal-error transition-colors p-1"
+                onClick={() => handleDeleteWallet(wallet.wallet_address, wallet.name)}
+                disabled={isDeleting === wallet.wallet_address}
+                title="Remove wallet"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           ))}
         </div>

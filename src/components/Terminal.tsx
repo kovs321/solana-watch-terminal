@@ -1,14 +1,22 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, RefreshCw } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff, MessageSquare } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 import { useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from './ui/button';
+import { toast } from '@/components/ui/use-toast';
 
 const Terminal: React.FC = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
-  const { transactions, clearTransactions, isConnected } = useTransactionContext();
+  const [showDebug, setShowDebug] = useState(false);
+  const { 
+    transactions, 
+    clearTransactions, 
+    isConnected, 
+    wsStatus,
+    generateTestTransaction
+  } = useTransactionContext();
 
   // Handle manual scroll to disable auto-scroll when user scrolls up
   const handleScroll = () => {
@@ -30,6 +38,20 @@ const Terminal: React.FC = () => {
   // Function to clear all transactions
   const handleClearTransactions = () => {
     clearTransactions();
+    toast({
+      title: "Transactions cleared",
+      description: "All transaction history has been cleared from the display",
+    });
+  };
+
+  // Generate a test transaction
+  const handleGenerateTest = () => {
+    generateTestTransaction();
+  };
+
+  // Toggle debug information
+  const toggleDebug = () => {
+    setShowDebug(prev => !prev);
   };
 
   return (
@@ -45,6 +67,27 @@ const Terminal: React.FC = () => {
           <span className="text-xs text-terminal-muted">
             {isConnected ? 'Connected' : 'Connecting...'}
           </span>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-terminal-muted hover:text-terminal-text"
+            onClick={toggleDebug}
+            title="Toggle debug info"
+          >
+            <AlertCircle size={14} />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-terminal-muted hover:text-terminal-text"
+            onClick={handleGenerateTest}
+            title="Generate test transaction"
+          >
+            <MessageSquare size={14} />
+          </Button>
+          
           <Button
             variant="ghost"
             size="sm"
@@ -56,6 +99,33 @@ const Terminal: React.FC = () => {
           </Button>
         </div>
       </div>
+      
+      {showDebug && (
+        <div className="text-xs bg-black p-2 border-b border-terminal-muted font-mono">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              {isConnected ? (
+                <Wifi size={12} className="text-terminal-success mr-1" />
+              ) : (
+                <WifiOff size={12} className="text-terminal-error mr-1" />
+              )}
+              <span>WebSocket Status: {isConnected ? 'Connected' : 'Disconnected'}</span>
+            </div>
+            <div className="text-terminal-muted">
+              Tracking {transactions.length} transactions
+            </div>
+          </div>
+          
+          {wsStatus && (
+            <div className="mt-1 text-terminal-muted">
+              <div>Socket States: Main={wsStatus.mainSocketState}, Transaction={wsStatus.transactionSocketState}</div>
+              <div className="truncate">
+                Rooms: {wsStatus.subscribedRooms?.join(', ') || 'None'}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       
       <div 
         ref={terminalRef}
