@@ -17,6 +17,10 @@ const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const { wsStatus } = useTransactionContext();
+  
+  // Get monitored rooms from the wsStatus
+  const monitoredRooms = wsStatus?.subscribedRooms || [];
 
   const fetchTrackedWallets = async () => {
     try {

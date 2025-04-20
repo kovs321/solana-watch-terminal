@@ -5,6 +5,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, Radio } from 'lucide-react';
 import { useTransactionContext } from '@/contexts/TransactionContext';
+import { toast } from '@/components/ui/use-toast';
 
 // Import the Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
