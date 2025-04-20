@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import TransactionTable from './TransactionTable';
@@ -6,11 +5,14 @@ import WebSocketDebugPanel from './WebSocketDebugPanel';
 import { useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from './ui/button';
 import { toast } from '@/components/ui/use-toast';
+import RawWebSocketDataDrawer from "./RawWebSocketDataDrawer";
+import { Code } from "lucide-react";
 
 const Terminal: React.FC = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDebug, setShowDebug] = useState(false);
+  const [rawDrawerOpen, setRawDrawerOpen] = useState(false);
   const { 
     transactions, 
     clearTransactions, 
@@ -54,6 +56,15 @@ const Terminal: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          <button
+            className="flex items-center gap-1 px-2 py-1 rounded border font-mono text-xs bg-black border-terminal-muted text-terminal-highlight hover:bg-terminal-highlight hover:text-black transition-all"
+            title="Show Raw WebSocket Data"
+            onClick={() => setRawDrawerOpen(true)}
+            style={{ minHeight: 32 }}
+          >
+            <Code size={14} />
+            Raw Data
+          </button>
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-terminal-success' : 'bg-terminal-error'}`}></div>
           <span className="text-xs text-terminal-muted">
             {isConnected ? 'Connected' : 'Connecting...'}
@@ -80,6 +91,8 @@ const Terminal: React.FC = () => {
           </Button>
         </div>
       </div>
+      
+      <RawWebSocketDataDrawer open={rawDrawerOpen} onOpenChange={setRawDrawerOpen} />
       
       {showDebug && (
         <div className="text-xs bg-black p-2 border-b border-terminal-muted font-mono">
@@ -132,4 +145,3 @@ const Terminal: React.FC = () => {
 };
 
 export default Terminal;
-
