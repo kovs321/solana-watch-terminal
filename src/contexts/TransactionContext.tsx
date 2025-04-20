@@ -7,6 +7,7 @@ import { useWebSocketConnection } from '@/hooks/useWebSocketConnection';
 import { useTradeProcessor } from '@/hooks/useTradeProcessor';
 import { SolanaTransaction, TransactionContextType } from '@/types/transactions';
 import { TradeInfo } from '@/services/SolanaTrackerService';
+import { supabase } from '@/integrations/supabase/client';
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
@@ -28,6 +29,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const { wsService, isConnected, wsStatus } = useWebSocketConnection();
   const { convertTradeToTransaction } = useTradeProcessor();
   const [monitoringActive, setMonitoringActive] = useState(false);
+  const [connectedWallets, setConnectedWallets] = useState<string[]>([]);
 
   const currentWalletSubsRef = useRef<Set<string>>(new Set());
 
@@ -39,7 +41,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
 
     try {
       const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet?.toLowerCase());
-      const transaction = convertTradeToTransaction(trade, wallet?.name);
+      const transaction = convertTradeToTransaction(trade, wallet?.name || trade.walletName);
 
       setTransactions(prev => {
         const exists = prev.some(tx => tx.id === transaction.id);
@@ -55,7 +57,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     }
   }, [wallets, convertTradeToTransaction]);
 
-  const startMonitoringAllWallets = useCallback(() => {
+  const startMonitoringAllWallets = useCallback(async () => {
     if (!wsService || !isConnected) {
       toast({
         title: "Connection Error",
@@ -65,59 +67,85 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       return;
     }
 
-    const subscribeToWallet = (address: string, name?: string) => {
-      const roomName = `wallet:${address}`;
-      wsService.joinRoom(roomName);
-      console.log(`Subscribed to wallet: ${name || address.slice(0, 4) + '...' + address.slice(-4)}`);
+    // First fetch the tracked wallets from the database
+    try {
+      const { data: trackedWallets, error } = await supabase
+        .from('wallet_tracking')
+        .select('*');
+        
+      if (error) throw error;
       
-      const handler = (data: TradeInfo) => {
-        if (data) {
-          data.walletName = name || undefined;
+      if (!trackedWallets || trackedWallets.length === 0) {
+        toast({
+          title: "No Wallets to Monitor",
+          description: "Add wallets to your tracking list first.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const subscribeToWallet = (address: string, name?: string) => {
+        const roomName = `wallet:${address}`;
+        
+        // Leave the room first if already subscribed, to ensure clean state
+        if (wsService.subscribedRooms.has(roomName)) {
+          wsService.leaveRoom(roomName);
+          console.log(`Unsubscribed from existing wallet room: ${name || address}`);
         }
-        handleNewTransaction(data);
+        
+        // Join the room
+        wsService.joinRoom(roomName);
+        console.log(`Subscribed to wallet: ${name || address.slice(0, 4) + '...' + address.slice(-4)}`);
+        
+        const handler = (data: TradeInfo) => {
+          if (data) {
+            data.walletName = name || undefined;
+          }
+          handleNewTransaction(data);
+        };
+        
+        wsService.on(roomName, handler);
+        currentWalletSubsRef.current.add(address);
+        
+        return () => {
+          wsService.off(roomName, handler);
+          wsService.leaveRoom(roomName);
+        };
       };
-      
-      wsService.on(roomName, handler);
-      currentWalletSubsRef.current.add(address);
 
-      return () => wsService.off(roomName, handler);
-    };
-
-    // Unsubscribe from any wallet that's no longer in the list
-    const currentWalletsSet = new Set(wallets.map(w => w.address));
-    currentWalletSubsRef.current.forEach(address => {
-      if (!currentWalletsSet.has(address)) {
+      // Clear any existing subscriptions
+      currentWalletSubsRef.current.forEach(address => {
         const roomName = `wallet:${address}`;
         wsService.leaveRoom(roomName);
-        currentWalletSubsRef.current.delete(address);
-        console.log(`Unsubscribed from wallet: ${address}`);
-      }
-    });
-
-    // Subscribe to all wallets
-    let count = 0;
-    wallets.forEach(wallet => {
-      if (!currentWalletSubsRef.current.has(wallet.address)) {
-        subscribeToWallet(wallet.address, wallet.name);
+      });
+      currentWalletSubsRef.current.clear();
+      
+      // Subscribe to all tracked wallets
+      let count = 0;
+      trackedWallets.forEach(wallet => {
+        subscribeToWallet(wallet.wallet_address, wallet.name);
         count++;
-      }
-    });
+      });
 
-    setMonitoringActive(true);
-    
-    toast({
-      title: "Wallet Monitoring Started",
-      description: `Now monitoring ${count} new wallets for transactions`,
-    });
-  }, [wallets, wsService, isConnected, handleNewTransaction]);
-
-  // Auto-subscribe when component mounts or connection changes
-  useEffect(() => {
-    if (isConnected && wsService && wallets.length > 0 && !monitoringActive) {
-      console.log("Auto-starting monitoring for all wallets...");
-      startMonitoringAllWallets();
+      setConnectedWallets(Array.from(currentWalletSubsRef.current));
+      setMonitoringActive(true);
+      
+      toast({
+        title: "Wallet Monitoring Started",
+        description: `Now monitoring ${count} wallets for transactions`,
+      });
+    } catch (error) {
+      console.error("Error starting wallet monitoring:", error);
+      toast({
+        title: "Monitoring Error",
+        description: "Failed to start wallet monitoring. Please try again.",
+        variant: "destructive"
+      });
     }
-    
+  }, [wsService, isConnected, handleNewTransaction]);
+
+  // When component unmounts or wsService changes, clean up subscriptions
+  useEffect(() => {
     return () => {
       if (wsService) {
         currentWalletSubsRef.current.forEach(address => {
@@ -125,9 +153,10 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
           wsService.leaveRoom(roomName);
         });
         currentWalletSubsRef.current.clear();
+        setConnectedWallets([]);
       }
     };
-  }, [isConnected, wsService, wallets.length, monitoringActive, startMonitoringAllWallets]);
+  }, [wsService]);
 
   const clearTransactions = useCallback(() => {
     setTransactions([]);
@@ -248,7 +277,8 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     generateTestTransaction,
     subscribeToTestWallet,
     startMonitoringAllWallets,
-    monitoringActive
+    monitoringActive,
+    connectedWallets
   };
 
   return (
