@@ -122,14 +122,14 @@ const TransactionTable = () => {
                     <TokenCell
                       symbol={tx.fromToken}
                       name={tx.fromTokenName}
-                      address={(tx as any).fromTokenAddress}
+                      address={tx.fromTokenAddress}
                     />{" "}
                     {formatTokenAmount(tx.fromAmount)}
                     <span className="mx-1">→</span>
                     <TokenCell
                       symbol={tx.toToken}
                       name={tx.toTokenName}
-                      address={(tx as any).toTokenAddress}
+                      address={tx.toTokenAddress}
                     />{" "}
                     {formatTokenAmount(tx.toAmount)}
                   </span>
@@ -159,4 +159,3 @@ const TransactionTable = () => {
 };
 
 export default TransactionTable;
-

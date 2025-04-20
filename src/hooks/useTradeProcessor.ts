@@ -15,6 +15,10 @@ export const useTradeProcessor = () => {
     // Extract token names for additional display information
     const fromTokenName = trade.token?.from?.name || trade.from?.token?.name || "";
     const toTokenName = trade.token?.to?.name || trade.to?.token?.name || "";
+
+    // Extract token addresses
+    const fromTokenAddress = trade.token?.from?.address || trade.from?.token?.address || undefined;
+    const toTokenAddress = trade.token?.to?.address || trade.to?.token?.address || undefined;
     
     let fromAmount: number | string = 0;
     let toAmount: number | string = 0;
@@ -50,9 +54,11 @@ export const useTradeProcessor = () => {
       type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
       fromToken,
       fromTokenName,
+      fromTokenAddress,
       fromAmount,
       toToken,
       toTokenName,
+      toTokenAddress,
       toAmount,
       program: trade.program || 'Unknown',
       usdValue,

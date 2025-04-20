@@ -6,9 +6,11 @@ export interface SolanaTransaction {
   type: 'BUY' | 'SELL';
   fromToken: string;
   fromTokenName?: string;
+  fromTokenAddress?: string;
   fromAmount: number | string;
   toToken: string;
   toTokenName?: string;
+  toTokenAddress?: string;
   toAmount: number | string;
   program: string;
   usdValue: number;
