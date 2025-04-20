@@ -105,39 +105,31 @@ class WebSocketService {
 
     socket.onmessage = (event) => {
       try {
-        console.log(`[WebSocket ${type}] Raw Message:`, event.data);
+        console.debug(`[WebSocket ${type}] Raw Message:`, event.data);
         const message = JSON.parse(event.data);
         
         console.group(`[WebSocket ${type}] Parsed Message`);
-        console.log('Type:', message.type);
-        console.log('Full Message:', message);
+        console.log('Full Raw Message:', message);
+        console.log('Message Type:', message.type);
         console.groupEnd();
-        
-        if (message.type === "system") {
-          console.log(`System message: ${message.event}`, message);
-          if (message.event === "subscribed") {
-            console.log(`Successfully subscribed to room: ${message.room}`);
-            this.emitter.emit('room-subscribed', message.room);
-          }
+
+        if (message.type === 'system' || message.event === 'subscribed') {
+          console.log(`System message in ${type} socket:`, message);
+          this.emitter.emit('room-subscribed', message.room || message.data?.room);
           return;
         }
-        
-        if (message.type === "ping") {
-          console.log(`[WebSocket ${type}] Received ping, sending pong`);
+
+        if (message.type === 'ping') {
+          console.log(`Received ping on ${type} socket, sending pong`);
           socket.send(JSON.stringify({ 
-            type: "pong",
-            client: "solana-tracker",
-            timestamp: new Date().toISOString()
+            type: 'pong', 
+            client: 'solana-tracker',
+            timestamp: new Date().toISOString() 
           }));
           return;
         }
-        
-        if (message.type === "pong") {
-          console.log(`[WebSocket ${type}] Received pong confirmation`);
-          return;
-        }
-        
-        if (message.type === "message") {
+
+        if (message.type === 'message' || message.room) {
           console.log(`Received message for room ${message.room}:`, message.data);
           
           if (message.data?.tx && this.transactions.has(message.data.tx)) {
@@ -146,24 +138,23 @@ class WebSocketService {
           }
           
           if (message.data?.tx) {
-            console.log(`Adding new transaction: ${message.data.tx}`);
             this.transactions.add(message.data.tx);
           }
-          
-          if (message.room.includes('price:')) {
-            this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
-          }
-          
-          if (message.room.startsWith('wallet:')) {
-            console.log(`Emitting wallet transaction for ${message.room}:`, message.data);
+
+          if (message.room) {
             this.emitter.emit(message.room, message.data);
-            this.emitter.emit('all-transactions', message.data);
+            
+            if (message.room.startsWith('wallet:')) {
+              this.emitter.emit('all-transactions', message.data);
+            }
+            
+            if (message.room.includes('price:')) {
+              this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
+            }
           }
-          
-          this.emitter.emit(message.room, message.data);
         }
       } catch (error) {
-        console.error(`[WebSocket ${type}] Parse Error:`, error);
+        console.error(`[WebSocket ${type}] Message parsing error:`, error);
         console.error('Raw Message:', event.data);
       }
     };

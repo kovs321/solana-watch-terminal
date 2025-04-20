@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -133,29 +132,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     });
   }, [wallets, handleNewTransaction]);
   
-  // Initialize WebSocket service
-  useEffect(() => {
-    console.log("Initializing WebSocket service with API key...");
-    const service = new WebSocketService(WS_URL, API_KEY);
-    setWsService(service);
-    
-    const checkConnection = setInterval(() => {
-      const socket = service.getSocket();
-      const connected = socket !== null && socket.readyState === WebSocket.OPEN;
-      setIsConnected(connected);
-      
-      // Update WebSocket status for debugging
-      setWsStatus(service.getConnectionStatus());
-    }, 2000);
-    
-    return () => {
-      console.log("Cleaning up WebSocket service...");
-      service.disconnect();
-      clearInterval(checkConnection);
-    };
-  }, []);
-  
-  // Set up WebSocket listeners for wallet transactions
+  // Modify the WebSocket setup effect
   useEffect(() => {
     if (!wsService || !isConnected) {
       console.log("WebSocket not ready or not connected");
@@ -169,10 +146,10 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     
     console.log(`Setting up listeners for ${wallets.length} wallets`);
     
-    // Clean up previous listeners
+    // Clear previous listeners
     wsService.emitter.removeAllListeners();
     
-    // Listen for all transactions (across all wallets)
+    // Listen for all transactions across wallets
     wsService.on('all-transactions', (data) => {
       console.log("Received transaction from all-transactions channel:", data);
       handleNewTransaction(data);
@@ -182,19 +159,19 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     wsService.on('room-subscribed', (room) => {
       console.log(`Successfully subscribed to room: ${room}`);
       
-      // If this is a wallet room, fetch its historical trades
-      if (room.startsWith('wallet:')) {
+      // Optional: Fetch historical trades for the subscribed wallet
+      if (room?.startsWith('wallet:')) {
         const walletAddress = room.split(':')[1];
         const wallet = wallets.find(w => w.address.toLowerCase() === walletAddress.toLowerCase());
         
         if (wallet) {
           console.log(`Fetching historical trades for wallet ${wallet.name} (${wallet.address})`);
-          fetchHistoricalTrades(wallet.address, wallet.name);
+          // Implement historical trade fetching logic here if needed
         }
       }
     });
     
-    // Subscribe to each wallet
+    // Subscribe to each wallet's room
     wallets.forEach(wallet => {
       const roomName = `wallet:${wallet.address}`;
       console.log(`Setting up listener for wallet ${wallet.name} (${wallet.address}) in room ${roomName}`);
@@ -207,70 +184,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       });
     });
     
-    const fetchHistoricalTrades = async (walletAddress: string, walletName?: string) => {
-      try {
-        console.log(`Fetching historical trades for wallet ${walletName || walletAddress}`);
-        const response = await getWalletTrades(walletAddress);
-        
-        if (response && response.trades && response.trades.length > 0) {
-          console.log(`Processing ${response.trades.length} historical trades for ${walletName || walletAddress}`);
-          
-          const historicalTransactions = response.trades.map(trade => {
-            const tradeInfo: TradeInfo = {
-              tx: trade.tx,
-              amount: trade.to.amount,
-              priceUsd: trade.price.usd,
-              solVolume: trade.volume.sol,
-              volume: trade.volume.usd,
-              type: trade.from.token.symbol === 'SOL' ? 'buy' : 'sell',
-              wallet: trade.wallet,
-              time: trade.time,
-              program: trade.program,
-              token: {
-                from: {
-                  name: trade.from.token.name,
-                  symbol: trade.from.token.symbol,
-                  image: trade.from.token.image,
-                  decimals: trade.from.token.decimals,
-                  address: trade.from.address,
-                  amount: trade.from.amount
-                },
-                to: {
-                  name: trade.to.token.name,
-                  symbol: trade.to.token.symbol,
-                  image: trade.to.token.image,
-                  decimals: trade.to.token.decimals,
-                  address: trade.to.address,
-                  amount: trade.to.amount
-                }
-              }
-            };
-            
-            return convertTradeToTransaction(tradeInfo, walletName);
-          });
-          
-          setTransactions(prev => {
-            const combined = [...prev, ...historicalTransactions];
-            const unique = Array.from(
-              new Map(combined.map(tx => [tx.id, tx])).values()
-            ).sort((a, b) => b.timestamp - a.timestamp);
-            
-            console.log(`Added ${historicalTransactions.length} historical transactions`);
-            return unique.slice(0, 100);
-          });
-        } else {
-          console.log(`No historical trades found for wallet ${walletName || walletAddress}`);
-        }
-      } catch (error) {
-        console.error(`Error fetching historical trades for ${walletName || walletAddress}:`, error);
-      }
-    };
-    
-    // Fetch historical transactions for all wallets
-    wallets.forEach(wallet => {
-      fetchHistoricalTrades(wallet.address, wallet.name);
-    });
-    
     return () => {
       console.log("Cleaning up wallet listeners...");
       wallets.forEach(wallet => {
@@ -278,7 +191,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       });
       wsService.emitter.removeAllListeners();
     };
-  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
+  }, [wsService, isConnected, wallets, handleNewTransaction]);
   
   const value = {
     transactions,
