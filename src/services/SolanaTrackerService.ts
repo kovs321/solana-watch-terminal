@@ -1,9 +1,8 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
-const WS_URL = 'wss://stream.solanatracker.io';
-const API_KEY = 'YOUR_API_KEY_HERE'; // Replace this with your actual Solana Tracker API key
+const WS_URL = 'wss://datastream.solanatracker.io/6332a381-1d02-45e9-b9d1-fa797b304a40';
+const API_KEY = '7e869836-9708-43e2-bb2e-1c11959d306a';
 
 // Types for API responses
 export interface TokenInfo {
