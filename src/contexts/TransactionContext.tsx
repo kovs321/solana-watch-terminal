@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -133,7 +132,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     });
   }, [wallets, handleNewTransaction]);
   
-  // Initialize WebSocket service
   useEffect(() => {
     console.log("Initializing WebSocket service...");
     
@@ -168,7 +166,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     };
   }, []);
   
-  // Update WebSocket connection status
   useEffect(() => {
     if (!wsService) return;
     
@@ -181,50 +178,60 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     return () => clearInterval(statusInterval);
   }, [wsService]);
   
-  // Modify the WebSocket setup effect for wallets
   useEffect(() => {
-    if (!wsService) {
-      console.log("WebSocket service not initialized yet");
+    if (!wsService || !isConnected || wallets.length === 0) {
+      console.log("Cannot setup wallet listeners - prerequisites not met");
       return;
     }
-    
-    if (wallets.length === 0) {
-      console.log("No wallets to track");
-      return;
-    }
-    
+
     console.log(`Setting up listeners for ${wallets.length} wallets`);
-    
-    // Clear previous listeners
     wsService.emitter.removeAllListeners();
     
-    // Listen for all transactions across wallets
+    wallets.forEach(wallet => {
+      wsService.leaveRoom(`wallet:${wallet.address}`);
+    });
+
     wsService.on('all-transactions', (data) => {
       console.log("Received transaction from all-transactions channel:", data);
       handleNewTransaction(data);
     });
-    
-    // Listen for room subscription confirmations
-    wsService.on('room-subscribed', (room) => {
-      console.log(`Successfully subscribed to room: ${room}`);
-      
-      // Optional: Fetch historical trades for the subscribed wallet
-      if (room?.startsWith('wallet:')) {
-        const walletAddress = room.split(':')[1];
-        const wallet = wallets.find(w => w.address.toLowerCase() === walletAddress.toLowerCase());
-        
-        if (wallet) {
-          console.log(`Fetching historical trades for wallet ${wallet.name} (${wallet.address})`);
-          // Implement historical trade fetching logic here if needed
-        }
-      }
-    });
-    
-    // Subscribe to each wallet's room
-    wallets.forEach(wallet => {
+
+    wallets.forEach(async (wallet) => {
       const roomName = `wallet:${wallet.address}`;
-      console.log(`Setting up listener for wallet ${wallet.name} (${wallet.address}) in room ${roomName}`);
-      
+      console.log(`Setting up listener for wallet ${wallet.name} (${wallet.address})`);
+
+      try {
+        console.log(`Fetching historical trades for ${wallet.name}`);
+        const historicalData = await getWalletTrades(wallet.address);
+        
+        if (historicalData?.trades?.length) {
+          const historicalTransactions = historicalData.trades.map(trade => 
+            convertTradeToTransaction({
+              tx: trade.tx,
+              wallet: trade.wallet,
+              type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
+              token: {
+                from: trade.from.token,
+                to: trade.to.token
+              },
+              volume: trade.volume.usd,
+              time: trade.time,
+              program: trade.program
+            }, wallet.name)
+          );
+
+          setTransactions(prev => {
+            const merged = [...prev, ...historicalTransactions];
+            const uniqueTransactions = Array.from(
+              new Map(merged.map(tx => [tx.id, tx])).values()
+            ).sort((a, b) => b.timestamp - a.timestamp);
+            return uniqueTransactions.slice(0, 100);
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching historical trades for ${wallet.name}:`, error);
+      }
+
       wsService.joinRoom(roomName);
       
       wsService.on(roomName, (data) => {
@@ -232,17 +239,15 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
         handleNewTransaction(data);
       });
     });
-    
+
     return () => {
       console.log("Cleaning up wallet listeners...");
-      if (wsService) {
-        wallets.forEach(wallet => {
-          wsService.leaveRoom(`wallet:${wallet.address}`);
-        });
-        wsService.emitter.removeAllListeners();
-      }
+      wallets.forEach(wallet => {
+        wsService.leaveRoom(`wallet:${wallet.address}`);
+      });
+      wsService.emitter.removeAllListeners();
     };
-  }, [wsService, wallets, handleNewTransaction]);
+  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
   
   const value = {
     transactions,

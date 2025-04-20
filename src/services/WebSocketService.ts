@@ -1,4 +1,3 @@
-
 import EventEmitter from "eventemitter3";
 
 class WebSocketService {
@@ -63,12 +62,7 @@ class WebSocketService {
 
   setupSocketListeners(socket: WebSocket, type: string) {
     socket.onopen = () => {
-      console.log(`[WebSocket ${type}] Connection established successfully`);
-      
-      console.group(`WebSocket ${type} Connection Details`);
-      console.log('Socket State:', socket.readyState);
-      console.log('Subscribed Rooms:', Array.from(this.subscribedRooms));
-      console.groupEnd();
+      console.log(`🟢 [WS ${type}] Connected`);
       
       if (socket.readyState === WebSocket.OPEN) {
         try {
@@ -79,9 +73,9 @@ class WebSocketService {
             socketType: type 
           };
           socket.send(JSON.stringify(heartbeat));
-          console.log(`[WebSocket ${type}] Sent initial heartbeat`);
+          console.log(`↗️ [WS ${type}] Sent initial heartbeat`);
         } catch (e) {
-          console.error(`[WebSocket ${type}] Heartbeat error:`, e);
+          console.error(`❌ [WS ${type}] Heartbeat error:`, e);
         }
       }
       
@@ -92,7 +86,7 @@ class WebSocketService {
     };
 
     socket.onclose = (event) => {
-      console.log(`Disconnected from ${type} WebSocket server`, event);
+      console.log(`🔴 [WS ${type}] Disconnected`, event);
       this.isConnected = false;
       if (type === "main") this.socket = null;
       if (type === "transaction") this.transactionSocket = null;
@@ -106,44 +100,38 @@ class WebSocketService {
     };
 
     socket.onerror = (error) => {
-      console.error(`WebSocket ${type} error:`, error);
+      console.error(`❌ [WS ${type}] Error:`, error);
     };
 
     socket.onmessage = (event) => {
+      console.debug(`📨 [WS ${type}] Raw message:`, event.data);
+      
       try {
-        console.debug(`[WebSocket ${type}] Raw Message:`, event.data);
         const message = JSON.parse(event.data);
-        
-        console.group(`[WebSocket ${type}] Parsed Message`);
-        console.log('Message Type:', message.type);
-        console.log('Full Message:', message);
-        console.groupEnd();
+        console.debug(`📩 [WS ${type}] Parsed message:`, message);
 
-        // Handle system messages
-        if (message.type === 'system' || message.event === 'subscribed' || message.type === 'joined') {
-          console.log(`System message in ${type} socket:`, message);
-          this.emitter.emit('room-subscribed', message.room || message.data?.room);
-          return;
-        }
-
-        // Handle ping/pong messages
         if (message.type === 'ping') {
-          console.log(`Received ping on ${type} socket, sending pong`);
           const pongMessage = JSON.stringify({ 
             type: 'pong', 
             client: 'solana-tracker',
             timestamp: new Date().toISOString() 
           });
           socket.send(pongMessage);
+          console.debug(`↔️ [WS ${type}] Sent pong response`);
           return;
         }
 
-        // Handle regular messages
-        if (message.type === 'message' || message.room) {
-          console.log(`Received message for room ${message.room}:`, message.data);
+        if (message.type === 'system' || message.event === 'subscribed' || message.type === 'joined') {
+          console.log(`✅ [WS ${type}] System message:`, message);
+          this.emitter.emit('room-subscribed', message.room || message.data?.room);
+          return;
+        }
+
+        if (message.type === 'message' && message.room) {
+          console.log(`📬 [WS ${type}] Room message for ${message.room}:`, message.data);
           
           if (message.data?.tx && this.transactions.has(message.data.tx)) {
-            console.log(`Skipping duplicate transaction: ${message.data.tx}`);
+            console.log(`🔄 [WS ${type}] Skipping duplicate transaction: ${message.data.tx}`);
             return;
           }
           
@@ -151,21 +139,15 @@ class WebSocketService {
             this.transactions.add(message.data.tx);
           }
 
-          if (message.room) {
-            this.emitter.emit(message.room, message.data);
-            
-            if (message.room.startsWith('wallet:')) {
-              this.emitter.emit('all-transactions', message.data);
-            }
-            
-            if (message.room.includes('price:')) {
-              this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
-            }
+          this.emitter.emit(message.room, message.data);
+          
+          if (message.room.startsWith('wallet:')) {
+            this.emitter.emit('all-transactions', message.data);
           }
         }
       } catch (error) {
-        console.error(`[WebSocket ${type}] Message parsing error:`, error);
-        console.error('Raw Message:', event.data);
+        console.error(`❌ [WS ${type}] Message parsing error:`, error);
+        console.error('Raw message:', event.data);
       }
     };
   }
