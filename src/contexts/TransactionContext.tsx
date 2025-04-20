@@ -77,8 +77,12 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     let usdValue = 0;
     if (typeof trade.volume === 'number') {
       usdValue = trade.volume;
-    } else if (trade.volume && typeof trade.volume === 'object' && 'usd' in trade.volume) {
-      usdValue = trade.volume.usd as number;
+    } else if (trade.volume && typeof trade.volume === 'object') {
+      // Use a type assertion to handle the potentially unknown structure
+      const volumeObj = trade.volume as { usd?: number };
+      if (volumeObj.usd !== undefined) {
+        usdValue = volumeObj.usd;
+      }
     }
     
     return {
