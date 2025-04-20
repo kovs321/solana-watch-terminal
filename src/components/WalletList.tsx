@@ -3,9 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trash2, Radio } from 'lucide-react'; // Added Radio icon for monitoring
+import { Trash2 } from 'lucide-react';
 import { useTransactionContext } from '@/contexts/TransactionContext';
-import { Button } from '@/components/ui/button';
 
 interface TrackedWallet {
   wallet_address: string;
@@ -18,7 +17,6 @@ const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const { startMonitoringAllWallets, monitoringActive, wsStatus } = useTransactionContext();
 
   const fetchTrackedWallets = async () => {
     try {
@@ -85,30 +83,6 @@ const WalletList: React.FC = () => {
     fetchTrackedWallets();
   }, []);
 
-  const monitoredRooms = wsStatus?.subscribedRooms || [];
-  const activeWalletRooms = monitoredRooms.filter(room => room.startsWith('wallet:'));
-  const allWalletsMonitored = wallets.length > 0 && wallets.every(wallet => 
-    monitoredRooms.includes(`wallet:${wallet.wallet_address}`)
-  );
-
-  const handleStartMonitoring = () => {
-    if (wallets.length === 0) {
-      toast({
-        title: "No wallets to monitor",
-        description: "Add at least one wallet to start monitoring",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    startMonitoringAllWallets();
-    
-    toast({
-      title: "Wallet Monitoring Started",
-      description: `Now monitoring ${wallets.length} wallets for transactions`,
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4">
@@ -127,16 +101,6 @@ const WalletList: React.FC = () => {
         <h2 className="text-terminal-highlight font-mono text-sm">
           Tracked Wallets ({wallets.length})
         </h2>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ${monitoringActive ? 'border-terminal-success text-terminal-success' : ''}`}
-          onClick={handleStartMonitoring}
-          disabled={monitoringActive || wallets.length === 0}
-        >
-          <Radio size={14} className={`mr-1 ${monitoringActive ? 'text-terminal-success' : ''}`} />
-          {monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring'}
-        </Button>
       </div>
       
       {wallets.length === 0 ? (
@@ -166,19 +130,6 @@ const WalletList: React.FC = () => {
               </button>
             </div>
           ))}
-        </div>
-      )}
-      
-      {monitoringActive && (
-        <div className="mt-2 text-xs text-terminal-muted border-t border-gray-800 pt-2">
-          <div className="flex items-center">
-            <Radio size={10} className="text-terminal-success mr-1" />
-            <span>
-              {allWalletsMonitored 
-                ? 'All wallets are being monitored' 
-                : `Monitoring ${activeWalletRooms.length} of ${wallets.length} wallets`}
-            </span>
-          </div>
         </div>
       )}
     </div>
