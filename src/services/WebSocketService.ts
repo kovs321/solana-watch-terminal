@@ -1,3 +1,4 @@
+
 import EventEmitter from "eventemitter3";
 
 class WebSocketService {
@@ -29,6 +30,8 @@ class WebSocketService {
     this.transactions = new Set();
     this.isConnected = false;
     this.pingInterval = null;
+    
+    console.log('WebSocketService initialized with URL:', wsUrl);
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -38,16 +41,18 @@ class WebSocketService {
 
   async connect() {
     if (this.socket && this.transactionSocket) {
+      console.log('WebSockets already connected, skipping connection');
       return;
     }
 
     try {
       const authenticatedUrl = `${this.wsUrl}?api_key=${this.apiKey}`;
-      console.log(`Connecting to WebSocket server at ${authenticatedUrl}...`);
+      console.log(`Attempting to connect to WebSocket server at ${this.wsUrl}...`);
       
       this.socket = new WebSocket(authenticatedUrl);
       this.transactionSocket = new WebSocket(authenticatedUrl);
       
+      console.log('WebSocket instances created, setting up listeners');
       this.setupSocketListeners(this.socket, "main");
       this.setupSocketListeners(this.transactionSocket, "transaction");
     } catch (e) {
@@ -58,7 +63,7 @@ class WebSocketService {
 
   setupSocketListeners(socket: WebSocket, type: string) {
     socket.onopen = () => {
-      console.log(`[WebSocket ${type}] Connection established`);
+      console.log(`[WebSocket ${type}] Connection established successfully`);
       
       console.group(`WebSocket ${type} Connection Details`);
       console.log('Socket State:', socket.readyState);
@@ -74,7 +79,7 @@ class WebSocketService {
             socketType: type 
           };
           socket.send(JSON.stringify(heartbeat));
-          console.log(`[WebSocket ${type}] Sent heartbeat`);
+          console.log(`[WebSocket ${type}] Sent initial heartbeat`);
         } catch (e) {
           console.error(`[WebSocket ${type}] Heartbeat error:`, e);
         }
@@ -83,6 +88,7 @@ class WebSocketService {
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.resubscribeToRooms();
+      this.startPingInterval();
     };
 
     socket.onclose = (event) => {
@@ -109,26 +115,30 @@ class WebSocketService {
         const message = JSON.parse(event.data);
         
         console.group(`[WebSocket ${type}] Parsed Message`);
-        console.log('Full Raw Message:', message);
         console.log('Message Type:', message.type);
+        console.log('Full Message:', message);
         console.groupEnd();
 
-        if (message.type === 'system' || message.event === 'subscribed') {
+        // Handle system messages
+        if (message.type === 'system' || message.event === 'subscribed' || message.type === 'joined') {
           console.log(`System message in ${type} socket:`, message);
           this.emitter.emit('room-subscribed', message.room || message.data?.room);
           return;
         }
 
+        // Handle ping/pong messages
         if (message.type === 'ping') {
           console.log(`Received ping on ${type} socket, sending pong`);
-          socket.send(JSON.stringify({ 
+          const pongMessage = JSON.stringify({ 
             type: 'pong', 
             client: 'solana-tracker',
             timestamp: new Date().toISOString() 
-          }));
+          });
+          socket.send(pongMessage);
           return;
         }
 
+        // Handle regular messages
         if (message.type === 'message' || message.room) {
           console.log(`Received message for room ${message.room}:`, message.data);
           
@@ -161,6 +171,7 @@ class WebSocketService {
   }
 
   disconnect() {
+    console.log('Disconnecting WebSockets');
     if (this.socket) {
       this.socket.close();
       this.socket = null;
@@ -181,7 +192,7 @@ class WebSocketService {
   }
 
   reconnect() {
-    console.log("Reconnecting to WebSocket server");
+    console.log(`Reconnecting to WebSocket server (attempt ${this.reconnectAttempts + 1})`);
     const delay = Math.min(
       this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
       this.reconnectDelayMax
@@ -189,6 +200,7 @@ class WebSocketService {
     const jitter = delay * this.randomizationFactor;
     const reconnectDelay = delay + Math.random() * jitter;
 
+    console.log(`Will attempt reconnection in ${Math.round(reconnectDelay)}ms`);
     setTimeout(() => {
       this.reconnectAttempts++;
       this.connect();
@@ -200,23 +212,36 @@ class WebSocketService {
       clearInterval(this.pingInterval);
     }
     
+    console.log('Starting ping interval (30s)');
     this.pingInterval = setInterval(() => {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         try {
-          this.socket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
+          this.socket.send(JSON.stringify({ 
+            type: "ping", 
+            client: "solana-tracker",
+            timestamp: new Date().toISOString()
+          }));
           console.log("Sent ping on main socket");
         } catch (e) {
           console.error("Error sending ping on main socket:", e);
         }
+      } else {
+        console.warn("Main socket not ready for ping, state:", this.socket?.readyState);
       }
       
       if (this.transactionSocket && this.transactionSocket.readyState === WebSocket.OPEN) {
         try {
-          this.transactionSocket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
+          this.transactionSocket.send(JSON.stringify({ 
+            type: "ping", 
+            client: "solana-tracker",
+            timestamp: new Date().toISOString()
+          }));
           console.log("Sent ping on transaction socket");
         } catch (e) {
           console.error("Error sending ping on transaction socket:", e);
         }
+      } else {
+        console.warn("Transaction socket not ready for ping, state:", this.transactionSocket?.readyState);
       }
     }, 30000);
     
@@ -231,12 +256,14 @@ class WebSocketService {
       : this.socket;
       
     if (!socket) {
-      console.error(`[WebSocket] No socket available for room: ${room}`);
+      console.error(`[WebSocket] No socket available for room: ${room}, will queue for reconnection`);
+      this.subscribedRooms.add(room);
       return;
     }
     
     if (socket.readyState !== WebSocket.OPEN) {
-      console.warn(`[WebSocket] Socket not ready for room: ${room}. State: ${socket.readyState}`);
+      console.warn(`[WebSocket] Socket not ready for room: ${room}. State: ${socket.readyState}, will queue for later`);
+      this.subscribedRooms.add(room);
       return;
     }
     
@@ -254,7 +281,7 @@ class WebSocketService {
     console.log(`Leaving room: ${room}`);
     this.subscribedRooms.delete(room);
     
-    const socket = room.includes("transaction")
+    const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
       
@@ -301,13 +328,15 @@ class WebSocketService {
           : this.socket;
           
         const message = JSON.stringify({ type: "join", room });
-        console.log(`Resubscribing to room ${room}:`, message);
+        console.log(`Resubscribing to room ${room}`);
         socket.send(message);
       }
       
       this.startPingInterval();
     } else {
       console.warn("Cannot resubscribe to rooms, sockets not ready");
+      console.log("Main socket state:", this.socket?.readyState);
+      console.log("Transaction socket state:", this.transactionSocket?.readyState);
     }
   }
 }

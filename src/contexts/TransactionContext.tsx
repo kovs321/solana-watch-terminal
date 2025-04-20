@@ -1,3 +1,4 @@
+
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -132,10 +133,58 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     });
   }, [wallets, handleNewTransaction]);
   
-  // Modify the WebSocket setup effect
+  // Initialize WebSocket service
   useEffect(() => {
-    if (!wsService || !isConnected) {
-      console.log("WebSocket not ready or not connected");
+    console.log("Initializing WebSocket service...");
+    
+    if (!WS_URL || !API_KEY) {
+      console.error("Missing WebSocket URL or API Key");
+      toast({
+        title: "WebSocket Configuration Error",
+        description: "Missing WebSocket URL or API Key",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const service = new WebSocketService(WS_URL, API_KEY);
+      setWsService(service);
+      console.log("WebSocket service initialized");
+    } catch (error) {
+      console.error("Failed to initialize WebSocket service:", error);
+      toast({
+        title: "WebSocket Error",
+        description: "Failed to initialize WebSocket connection",
+        variant: "destructive"
+      });
+    }
+    
+    return () => {
+      console.log("Cleaning up WebSocket service...");
+      if (wsService) {
+        wsService.disconnect();
+      }
+    };
+  }, []);
+  
+  // Update WebSocket connection status
+  useEffect(() => {
+    if (!wsService) return;
+    
+    const statusInterval = setInterval(() => {
+      const status = wsService.getConnectionStatus();
+      setIsConnected(status.connected);
+      setWsStatus(status);
+    }, 1000);
+    
+    return () => clearInterval(statusInterval);
+  }, [wsService]);
+  
+  // Modify the WebSocket setup effect for wallets
+  useEffect(() => {
+    if (!wsService) {
+      console.log("WebSocket service not initialized yet");
       return;
     }
     
@@ -186,12 +235,14 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     
     return () => {
       console.log("Cleaning up wallet listeners...");
-      wallets.forEach(wallet => {
-        wsService.leaveRoom(`wallet:${wallet.address}`);
-      });
-      wsService.emitter.removeAllListeners();
+      if (wsService) {
+        wallets.forEach(wallet => {
+          wsService.leaveRoom(`wallet:${wallet.address}`);
+        });
+        wsService.emitter.removeAllListeners();
+      }
     };
-  }, [wsService, isConnected, wallets, handleNewTransaction]);
+  }, [wsService, wallets, handleNewTransaction]);
   
   const value = {
     transactions,
