@@ -78,7 +78,7 @@ const AddWalletForm: React.FC = () => {
   }
 
   return (
-    <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4">
+    <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4 w-full max-w-md">
       <h2 className="text-terminal-highlight font-mono text-sm mb-3 border-b border-gray-800 pb-2">
         Add Wallet to Track
       </h2>
