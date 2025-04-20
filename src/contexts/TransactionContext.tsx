@@ -33,6 +33,7 @@ interface TransactionContextType {
   isConnected: boolean;
   wsStatus: any;
   generateTestTransaction: () => void;
+  subscribeToTestWallet: (address: string) => Promise<void>;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
@@ -132,6 +133,96 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       description: `Added test ${testTrade.type.toUpperCase()} transaction for ${randomWallet.name}`,
     });
   }, [wallets, handleNewTransaction]);
+  
+  const subscribeToTestWallet = useCallback(async (address: string) => {
+    console.log(`Setting up test wallet listener for address ${address}`);
+    
+    if (!wsService || !isConnected) {
+      throw new Error("WebSocket not connected");
+    }
+    
+    const roomName = `wallet:${address}`;
+    
+    // First, unsubscribe from any existing test wallet
+    const existingTestRooms = Array.from(wsService.subscribedRooms).filter(
+      room => room.startsWith('wallet:') && !wallets.some(w => room === `wallet:${w.address}`)
+    );
+    
+    existingTestRooms.forEach(room => {
+      console.log(`Leaving existing test room: ${room}`);
+      wsService.leaveRoom(room);
+    });
+    
+    try {
+      // Fetch historical trades for the test wallet
+      console.log(`Fetching historical trades for test wallet ${address}`);
+      const historicalData = await getWalletTrades(address);
+      
+      if (historicalData?.trades?.length) {
+        console.log(`Received ${historicalData.trades.length} historical trades for test wallet`);
+        
+        const historicalTransactions = historicalData.trades.map(trade => {
+          // Create a properly formatted TradeInfo object from historical data
+          const tradeInfo: TradeInfo = {
+            tx: trade.tx,
+            wallet: trade.wallet,
+            type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
+            token: {
+              from: trade.from.token,
+              to: trade.to.token
+            },
+            // Add the missing required properties
+            amount: trade.to.amount,
+            priceUsd: trade.price.usd,
+            solVolume: parseFloat(trade.volume.sol.toString()),
+            volume: trade.volume.usd,
+            time: trade.time,
+            program: trade.program
+          };
+          
+          return convertTradeToTransaction(tradeInfo, "Test Wallet");
+        });
+
+        setTransactions(prev => {
+          const merged = [...prev, ...historicalTransactions];
+          const uniqueTransactions = Array.from(
+            new Map(merged.map(tx => [tx.id, tx])).values()
+          ).sort((a, b) => b.timestamp - a.timestamp);
+          return uniqueTransactions.slice(0, 100);
+        });
+      } else {
+        console.log(`No historical trades found for test wallet ${address}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching historical trades for test wallet:`, error);
+      toast({
+        title: `Error Fetching Trades`,
+        description: `Could not load historical trades for test wallet`,
+        variant: "destructive"
+      });
+    }
+    
+    // Subscribe to live trades
+    wsService.joinRoom(roomName);
+    console.log(`Subscribed to test wallet room: ${roomName}`);
+    
+    // Add listener for this specific room
+    wsService.on(roomName, (data) => {
+      console.log(`Live trade received for test wallet:`, data);
+      
+      // Set a temporary wallet name
+      if (data) {
+        data.walletName = "Test Wallet";
+      }
+      
+      handleNewTransaction(data);
+    });
+    
+    toast({
+      title: "Test Wallet Monitoring",
+      description: `Successfully subscribed to ${address.slice(0, 4)}...${address.slice(-4)}`,
+    });
+  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
   
   useEffect(() => {
     console.log("Initializing WebSocket service...");
@@ -273,10 +364,11 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     isConnected,
     wsStatus,
     generateTestTransaction,
+    subscribeToTestWallet,
   };
   
   return (
-    <TransactionContext.Provider value={{ transactions, clearTransactions, isConnected, wsStatus, generateTestTransaction }}>
+    <TransactionContext.Provider value={{ transactions, clearTransactions, isConnected, wsStatus, generateTestTransaction, subscribeToTestWallet }}>
       {children}
     </TransactionContext.Provider>
   );

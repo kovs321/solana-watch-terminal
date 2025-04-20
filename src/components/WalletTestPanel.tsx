@@ -9,9 +9,10 @@ import TransactionTable from './TransactionTable';
 
 const WalletTestPanel = () => {
   const [testAddress, setTestAddress] = useState('');
-  const { wsStatus, isConnected } = useTransactionContext();
+  const [isLoading, setIsLoading] = useState(false);
+  const { wsStatus, isConnected, subscribeToTestWallet } = useTransactionContext();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!testAddress) {
@@ -32,11 +33,24 @@ const WalletTestPanel = () => {
       return;
     }
     
-    // TODO: Add test wallet subscription logic
-    toast({
-      title: "Monitoring Started",
-      description: `Now monitoring transactions for ${testAddress.slice(0, 4)}...${testAddress.slice(-4)}`,
-    });
+    setIsLoading(true);
+    
+    try {
+      await subscribeToTestWallet(testAddress);
+      toast({
+        title: "Monitoring Started",
+        description: `Now monitoring transactions for ${testAddress.slice(0, 4)}...${testAddress.slice(-4)}`,
+      });
+    } catch (error) {
+      console.error("Error subscribing to test wallet:", error);
+      toast({
+        title: "Subscription Error",
+        description: "Failed to subscribe to wallet. Please check the console for details.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
@@ -58,10 +72,10 @@ const WalletTestPanel = () => {
           type="submit"
           variant="outline"
           className="bg-terminal-background border-terminal-muted hover:bg-terminal-background/50"
-          disabled={!isConnected}
+          disabled={!isConnected || isLoading}
         >
           <PlaySquare size={16} className="mr-2" />
-          Monitor
+          {isLoading ? 'Connecting...' : 'Monitor'}
         </Button>
       </form>
       
