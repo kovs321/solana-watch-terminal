@@ -59,19 +59,32 @@ class WebSocketService {
 
   setupSocketListeners(socket: WebSocket, type: string) {
     socket.onopen = () => {
-      console.log(`Connected to ${type} WebSocket server`);
-      this.isConnected = true;
-      this.reconnectAttempts = 0;
+      console.log(`[WebSocket ${type}] Connection established`);
       
-      // Send a ping immediately after connection to test the connection
+      // Enhanced logging for connection status
+      console.group(`WebSocket ${type} Connection`);
+      console.log('Socket State:', socket.readyState);
+      console.log('Subscribed Rooms:', Array.from(this.subscribedRooms));
+      console.groupEnd();
+      
+      // Send a more detailed ping message
       if (socket.readyState === WebSocket.OPEN) {
         try {
-          socket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
-          console.log(`Sent initial ping on ${type} socket`);
+          const pingPayload = { 
+            type: 'ping', 
+            client: 'solana-tracker', 
+            timestamp: new Date().toISOString(),
+            socketType: type 
+          };
+          socket.send(JSON.stringify(pingPayload));
+          console.log(`[WebSocket ${type}] Sent enhanced ping`);
         } catch (e) {
-          console.error(`Error sending initial ping on ${type} socket:`, e);
+          console.error(`[WebSocket ${type}] Ping send error:`, e);
         }
       }
+      
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
       
       this.resubscribeToRooms();
     };
@@ -97,8 +110,18 @@ class WebSocketService {
 
     socket.onmessage = (event) => {
       try {
-        console.log(`Received ${type} message:`, event.data);
+        console.log(`[WebSocket ${type}] Raw Message:`, event.data);
         const message = JSON.parse(event.data);
+        
+        console.group(`[WebSocket ${type}] Parsed Message`);
+        console.log('Type:', message.type);
+        console.log('Full Message:', message);
+        console.groupEnd();
+        
+        if (message.type === 'pong') {
+          console.log(`[WebSocket ${type}] Received pong`);
+          return;
+        }
         
         if (message.type === "message") {
           console.log(`Processed message for room ${message.room}:`, message.data);
@@ -142,8 +165,8 @@ class WebSocketService {
           console.log(`Unknown message type on ${type} socket:`, message);
         }
       } catch (error) {
-        console.error("Error processing message:", error);
-        console.error("Raw message data:", event.data);
+        console.error(`[WebSocket ${type}] Message Parse Error:`, error);
+        console.error('Raw Message Data:', event.data);
       }
     };
   }
@@ -215,21 +238,31 @@ class WebSocketService {
   }
 
   joinRoom(room: string) {
-    console.log(`Joining room: ${room}`);
-    this.subscribedRooms.add(room);
+    console.log(`[WebSocketService] Attempting to join room: ${room}`);
     
-    // Always use transaction socket for wallet room subscriptions
     const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
       
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      const message = JSON.stringify({ type: "join", room });
-      console.log(`Sending join request for room ${room} on ${room.startsWith("wallet:") ? "transaction" : "main"} socket:`, message);
-      socket.send(message);
-    } else {
-      console.warn(`Cannot join room ${room}, socket not ready (state: ${socket?.readyState})`);
+    if (!socket) {
+      console.error(`[WebSocketService] No socket available for room: ${room}`);
+      return;
     }
+    
+    if (socket.readyState !== WebSocket.OPEN) {
+      console.warn(`[WebSocketService] Socket not open for room: ${room}. Current state: ${socket.readyState}`);
+      return;
+    }
+    
+    try {
+      const message = JSON.stringify({ type: "join", room });
+      console.log(`[WebSocketService] Sending join request:`, message);
+      socket.send(message);
+    } catch (error) {
+      console.error(`[WebSocketService] Error joining room ${room}:`, error);
+    }
+    
+    this.subscribedRooms.add(room);
   }
 
   leaveRoom(room: string) {
