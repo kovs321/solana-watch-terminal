@@ -12,6 +12,8 @@ interface TrackedWallet {
   name: string;
 }
 
+const FAKE_WALLET_NAMES = ["Bob", "Charlie", "Alice"];
+
 const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,8 +34,12 @@ const WalletList: React.FC = () => {
         throw error;
       }
 
-      console.log('Wallets fetched:', data);
-      setWallets(data || []);
+      // Filter out fake wallets
+      const realWallets = (data || []).filter(
+        wallet => !FAKE_WALLET_NAMES.includes(wallet.name)
+      );
+      console.log('Wallets fetched:', realWallets);
+      setWallets(realWallets);
     } catch (error) {
       console.error('Error fetching tracked wallets:', error);
       toast({
@@ -57,7 +63,6 @@ const WalletList: React.FC = () => {
         
       if (error) throw error;
       
-      // Update local state
       setWallets(wallets.filter(wallet => wallet.wallet_address !== walletAddress));
       
       toast({
