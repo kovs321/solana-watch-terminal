@@ -1,7 +1,7 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
+const WS_URL = 'wss://stream.solanatracker.io';
 
 // Types for API responses
 export interface TokenInfo {
@@ -60,7 +60,7 @@ export interface WalletTradeResponse {
   hasNextPage: boolean;
 }
 
-// Get API key from localStorage for now (we'll prompt the user to add this later)
+// Get API key from localStorage
 const getApiKey = () => {
   return localStorage.getItem('solana_tracker_api_key') || '';
 };
@@ -113,7 +113,7 @@ export const getWalletTrades = async (walletAddress: string, cursor?: number) =>
 };
 
 // Constants for WebSocket connection
-export const WS_URL = 'wss://stream.solanatracker.io';
+export { WS_URL };
 
 // Format date from timestamp
 export const formatTradeDate = (timestamp: number) => {

@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -10,7 +9,6 @@ import {
 } from '@/services/SolanaTrackerService';
 import { toast } from '@/components/ui/use-toast';
 
-// Type for our transaction context
 export interface SolanaTransaction {
   id: string;
   walletAddress: string;
@@ -34,10 +32,8 @@ interface TransactionContextType {
   apiKey: string | null;
 }
 
-// Create the context
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
-// Hook to use the transaction context
 export const useTransactionContext = () => {
   const context = useContext(TransactionContext);
   if (!context) {
@@ -46,12 +42,10 @@ export const useTransactionContext = () => {
   return context;
 };
 
-// Props for the provider
 interface TransactionProviderProps {
   children: ReactNode;
 }
 
-// Provider component
 export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) => {
   const { wallets } = useWalletContext();
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
@@ -61,7 +55,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     localStorage.getItem('solana_tracker_api_key')
   );
   
-  // Save API key to localStorage
   const handleSetApiKey = useCallback((key: string) => {
     localStorage.setItem('solana_tracker_api_key', key);
     setApiKey(key);
@@ -70,11 +63,9 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       description: "Your Solana Tracker API key has been saved",
     });
     
-    // Reload to reconnect with the new API key
     window.location.reload();
   }, []);
   
-  // Convert TradeInfo to SolanaTransaction
   const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
     return {
       id: trade.tx,
@@ -92,35 +83,29 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     };
   }, []);
   
-  // Function to handle new transactions from WebSocket
   const handleNewTransaction = useCallback((trade: TradeInfo) => {
     const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet.toLowerCase());
     
     const transaction = convertTradeToTransaction(trade, wallet?.name);
     
     setTransactions(prev => {
-      // Check if this transaction already exists
       const exists = prev.some(tx => tx.id === transaction.id);
       if (exists) return prev;
       
-      // Add to beginning and limit to 100 transactions
       return [transaction, ...prev].slice(0, 100);
     });
   }, [wallets, convertTradeToTransaction]);
   
-  // Clear all transactions
   const clearTransactions = useCallback(() => {
     setTransactions([]);
   }, []);
   
-  // Initialize WebSocket service
   useEffect(() => {
     if (!apiKey) return;
     
     const service = new WebSocketService(WS_URL);
     setWsService(service);
     
-    // Check connection status
     const checkConnection = setInterval(() => {
       const socket = service.getSocket();
       setIsConnected(socket !== null && socket.readyState === WebSocket.OPEN);
@@ -132,33 +117,26 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     };
   }, [apiKey]);
   
-  // Subscribe to wallet transactions when wallet list changes
   useEffect(() => {
     if (!wsService || !isConnected || wallets.length === 0) return;
     
-    // Unsubscribe from all existing subscriptions
     wsService.emitter.removeAllListeners();
     
-    // Create new subscriptions
     wallets.forEach(wallet => {
       const roomName = `wallet:${wallet.address}`;
       
-      // Join the room for this wallet
       wsService.joinRoom(roomName);
       
-      // Listen for wallet transaction updates
       wsService.on(roomName, (data) => {
         console.log(`New transaction for wallet ${wallet.name}:`, data);
         handleNewTransaction(data);
       });
       
-      // Fetch historical trades to populate initial data
       if (apiKey) {
         getWalletTrades(wallet.address)
           .then(response => {
             if (response && response.trades) {
               const historicalTransactions = response.trades.map(trade => {
-                // Map API response to our TradeInfo format (simplified)
                 const tradeInfo: TradeInfo = {
                   tx: trade.tx,
                   amount: trade.to.amount,
@@ -194,12 +172,11 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
               
               setTransactions(prev => {
                 const combined = [...prev, ...historicalTransactions];
-                // Remove duplicates and sort by timestamp (newest first)
                 const unique = Array.from(
                   new Map(combined.map(tx => [tx.id, tx])).values()
                 ).sort((a, b) => b.timestamp - a.timestamp);
                 
-                return unique.slice(0, 100); // Limit to 100 transactions
+                return unique.slice(0, 100);
               });
             }
           })
@@ -208,7 +185,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     });
     
     return () => {
-      // Cleanup subscriptions on unmount or when wallets change
       wallets.forEach(wallet => {
         wsService.leaveRoom(`wallet:${wallet.address}`);
       });
@@ -216,7 +192,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     };
   }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction, apiKey]);
   
-  // Context value
   const value = {
     transactions,
     clearTransactions,
