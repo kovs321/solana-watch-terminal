@@ -33,20 +33,25 @@ const ConnectWallet: React.FC = () => {
           </Button>
         </>
       ) : (
-        <Button
-          variant="default"
-          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
-          onClick={() => {
-            // Fix: Cast the Element to HTMLButtonElement to access the click method
-            const walletButton = document.querySelector('button.wallet-adapter-button') as HTMLButtonElement;
-            if (walletButton) {
-              walletButton.click();
-            }
-          }}
-        >
-          <LogIn size={16} className="mr-2" />
-          Connect Wallet
-        </Button>
+        <>
+          {/* Place the WalletMultiButton in the DOM but visually hidden */}
+          <WalletMultiButton className="hidden" id="wallet-adapter-button" />
+          
+          <Button
+            variant="default"
+            className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
+            onClick={() => {
+              // Find the wallet button by ID and trigger its click event
+              const walletButton = document.getElementById('wallet-adapter-button') as HTMLButtonElement;
+              if (walletButton) {
+                walletButton.click();
+              }
+            }}
+          >
+            <LogIn size={16} className="mr-2" />
+            Connect Wallet
+          </Button>
+        </>
       )}
     </div>
   );
