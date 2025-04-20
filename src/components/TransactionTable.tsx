@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useTransactionContext, SolanaTransaction } from "@/contexts/TransactionContext";
@@ -54,14 +55,16 @@ const TransactionTable = () => {
                   )}
                 </TableCell>
                 <TableCell className="text-terminal-text font-mono text-xs">
-                  {tx.walletName || tx.walletAddress.slice(0, 4) + '...' + tx.walletAddress.slice(-4)}
+                  {tx.walletName || (tx.walletAddress ? tx.walletAddress.slice(0, 4) + '...' + tx.walletAddress.slice(-4) : 'Unknown')}
                 </TableCell>
                 <TableCell className="text-terminal-highlight">
-                  {tx.fromAmount.slice(0, 8)} {tx.fromToken} → {tx.toAmount.slice(0, 8)} {tx.toToken}
+                  {parseFloat(tx.fromAmount || '0').toFixed(2)} {tx.fromToken} → {parseFloat(tx.toAmount || '0').toFixed(2)} {tx.toToken}
                 </TableCell>
                 <TableCell className="text-terminal-muted">{tx.program}</TableCell>
                 <TableCell className="text-right text-terminal-text">
-                  ${tx.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${typeof tx.usdValue === 'number' 
+                    ? tx.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                    : '0.00'}
                 </TableCell>
                 <TableCell className="text-right text-terminal-muted text-xs">
                   {tx.displayTime}

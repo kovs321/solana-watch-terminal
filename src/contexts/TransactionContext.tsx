@@ -60,21 +60,38 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
     console.log("Converting trade to transaction:", trade);
     
-    // Handle null or undefined values
-    const fromAmount = trade.token?.from?.amount?.toString() || '0';
-    const toAmount = trade.token?.to?.amount?.toString() || '0';
+    // Extract token information safely with fallbacks
+    const fromToken = trade.token?.from?.symbol || "UNKNOWN";
+    const toToken = trade.token?.to?.symbol || "UNKNOWN";
+    
+    // Handle amounts safely, ensuring they're strings with proper formatting
+    const fromAmount = trade.token?.from?.amount !== undefined 
+      ? trade.token.from.amount.toString() 
+      : "0";
+    
+    const toAmount = trade.token?.to?.amount !== undefined 
+      ? trade.token.to.amount.toString() 
+      : "0";
+    
+    // Handle USD value safely
+    let usdValue = 0;
+    if (typeof trade.volume === 'number') {
+      usdValue = trade.volume;
+    } else if (trade.volume && typeof trade.volume.usd === 'number') {
+      usdValue = trade.volume.usd;
+    }
     
     return {
       id: trade.tx,
       walletAddress: trade.wallet,
-      walletName: walletName,
+      walletName: walletName || "Test Wallet",
       type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
-      fromToken: trade.token?.from?.symbol || 'UNKNOWN',
-      fromAmount: fromAmount,
-      toToken: trade.token?.to?.symbol || 'UNKNOWN',
-      toAmount: toAmount,
+      fromToken,
+      fromAmount,
+      toToken,
+      toAmount,
       program: trade.program || 'Unknown',
-      usdValue: trade.volume || 0,
+      usdValue,
       timestamp: trade.time || Date.now(),
       displayTime: formatTradeDate(trade.time || Date.now()),
     };
