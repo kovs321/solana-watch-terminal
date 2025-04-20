@@ -3,8 +3,7 @@ import React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut } from 'lucide-react'; // Removed Radio icon
-// Removed useTransactionContext and toast imports
+import { LogIn, LogOut } from 'lucide-react';
 
 // Import the Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -17,7 +16,7 @@ const ConnectWallet: React.FC = () => {
       {connected ? (
         <>
           <WalletMultiButton 
-            className="!bg-terminal-background !text-terminal-highlight !border !border-terminal-highlight !rounded-md !shadow-none !px-4 !py-2 !h-auto" 
+            className="bg-terminal-highlight text-black font-mono border border-terminal-highlight rounded-md shadow-md px-4 py-2 h-auto flex items-center"
           />
           <Button 
             variant="destructive" 
@@ -30,7 +29,7 @@ const ConnectWallet: React.FC = () => {
         </>
       ) : (
         <WalletMultiButton 
-          className="!bg-terminal-highlight !text-white !border-none !rounded-md !shadow-none !px-4 !py-2 !h-auto font-mono flex items-center"
+          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight"
         >
           <LogIn size={16} className="mr-2" />
           Connect Wallet
@@ -41,3 +40,4 @@ const ConnectWallet: React.FC = () => {
 };
 
 export default ConnectWallet;
+
