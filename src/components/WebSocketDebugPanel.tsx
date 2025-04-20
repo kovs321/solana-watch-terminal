@@ -24,7 +24,7 @@ const WebSocketDebugPanel = () => {
         setMessages(prev => [{
           timestamp: now,
           type: data.type || 'unknown',
-          direction: 'incoming',
+          direction: 'incoming' as const,
           data: data
         }, ...prev].slice(0, 100)); // Keep last 100 messages
       } catch (error) {
@@ -33,7 +33,7 @@ const WebSocketDebugPanel = () => {
         setMessages(prev => [{
           timestamp: now,
           type: 'unparseable',
-          direction: 'incoming',
+          direction: 'incoming' as const,
           data: { raw: event.data }
         }, ...prev].slice(0, 100));
       }
@@ -49,7 +49,7 @@ const WebSocketDebugPanel = () => {
           setMessages(prev => [{
             timestamp: now,
             type: parsedData.type || 'unknown',
-            direction: 'outgoing',
+            direction: 'outgoing' as const,
             data: parsedData
           }, ...prev].slice(0, 100));
         } catch (error) {
@@ -58,7 +58,7 @@ const WebSocketDebugPanel = () => {
           setMessages(prev => [{
             timestamp: now,
             type: 'unparseable',
-            direction: 'outgoing',
+            direction: 'outgoing' as const,
             data: { raw: typeof data === 'string' ? data : 'Binary data' }
           }, ...prev].slice(0, 100));
         }
@@ -67,7 +67,7 @@ const WebSocketDebugPanel = () => {
         setMessages(prev => [{
           timestamp: now,
           type: 'binary',
-          direction: 'outgoing',
+          direction: 'outgoing' as const,
           data: { type: 'Binary data' }
         }, ...prev].slice(0, 100));
       }
