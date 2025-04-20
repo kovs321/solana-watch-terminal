@@ -1,7 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff, MessageSquare } from 'lucide-react';
 import TransactionTable from './TransactionTable';
+import WebSocketDebugPanel from './WebSocketDebugPanel';
 import { useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from './ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -18,7 +18,6 @@ const Terminal: React.FC = () => {
     generateTestTransaction
   } = useTransactionContext();
 
-  // Handle manual scroll to disable auto-scroll when user scrolls up
   const handleScroll = () => {
     if (!terminalRef.current) return;
     
@@ -28,14 +27,12 @@ const Terminal: React.FC = () => {
     setIsAutoScrollEnabled(isScrolledToBottom);
   };
 
-  // Auto-scroll to bottom when new transactions arrive
   useEffect(() => {
     if (isAutoScrollEnabled && terminalRef.current && transactions.length > 0) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [transactions, isAutoScrollEnabled]);
 
-  // Function to clear all transactions
   const handleClearTransactions = () => {
     clearTransactions();
     toast({
@@ -44,12 +41,10 @@ const Terminal: React.FC = () => {
     });
   };
 
-  // Generate a test transaction
   const handleGenerateTest = () => {
     generateTestTransaction();
   };
 
-  // Toggle debug information
   const toggleDebug = () => {
     setShowDebug(prev => !prev);
   };
@@ -124,6 +119,8 @@ const Terminal: React.FC = () => {
               </div>
             </div>
           )}
+          
+          <WebSocketDebugPanel />
         </div>
       )}
       
