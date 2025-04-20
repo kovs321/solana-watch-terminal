@@ -7,7 +7,7 @@ import { LogIn, LogOut } from 'lucide-react';
 const PHANTOM_INSTALL_URL = 'https://phantom.app/download';
 
 const ConnectWallet: React.FC = () => {
-  const { connected, disconnect, wallets, select, connect, wallet } = useWallet();
+  const { connected, disconnect, wallets, select, connect } = useWallet();
 
   // Locate Phantom wallet adapter
   const phantom = wallets.find(w => w.adapter.name === 'Phantom');
@@ -31,33 +31,23 @@ const ConnectWallet: React.FC = () => {
   return (
     <div className="my-4 flex justify-center space-x-4">
       {connected ? (
-        <>
-          <Button
-            variant="default"
-            className="bg-terminal-highlight text-black font-mono border border-terminal-highlight rounded-md shadow-md px-4 py-2 h-auto flex items-center"
-          >
-            Connected
-          </Button>
-          <Button
-            variant="outline"
-            className="text-terminal-error border-terminal-error font-mono flex items-center px-4 py-2 rounded-md hover:bg-terminal-error/20 transition-colors"
-            onClick={() => disconnect()}
-          >
-            <LogOut size={16} className="mr-2" />
-            Disconnect
-          </Button>
-        </>
+        <Button
+          variant="outline"
+          className="text-terminal-error border-terminal-error font-mono flex items-center px-4 py-2 rounded-md hover:bg-terminal-error/20 transition-colors"
+          onClick={() => disconnect()}
+        >
+          <LogOut size={16} className="mr-2" />
+          Disconnect
+        </Button>
       ) : (
-        <>
-          <Button
-            variant="default"
-            className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
-            onClick={handleConnect}
-          >
-            <LogIn size={16} className="mr-2" />
-            Connect Wallet
-          </Button>
-        </>
+        <Button
+          variant="default"
+          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
+          onClick={handleConnect}
+        >
+          <LogIn size={16} className="mr-2" />
+          Connect Wallet
+        </Button>
       )}
     </div>
   );
