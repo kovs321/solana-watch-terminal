@@ -1,7 +1,8 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -18,6 +19,7 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletContextProvider } from './contexts/WalletContext';
 import { TransactionProvider } from './contexts/TransactionContext';
 import { useMemo } from 'react';
+import { QueryClient } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
