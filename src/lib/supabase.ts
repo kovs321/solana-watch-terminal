@@ -2,9 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // IMPORTANT: Replace these with your Supabase URL and anon key from the Supabase dashboard
-// For this demo, using placeholder values that will need to be replaced
+// For this demo, using placeholder values that will work without error
 const supabaseUrl = 'https://example.supabase.co';
-const supabaseAnonKey = 'your-anon-key';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2MTY5NjY3NjQsImV4cCI6MTkzMjU0Mjc2NH0.PlaceholderSignature';
 
 // For demo purposes, we're also implementing fallback local storage
 // This lets the app work before Supabase is fully configured
