@@ -1,4 +1,4 @@
-import { FC, ReactNode, createContext, useCallback, useContext, useState } from 'react';
+import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import { getWalletTrades, simulateTrade } from '@/services/SolanaTrackerService';
 import { toast } from '@/components/ui/use-toast';
@@ -26,35 +26,78 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
   const { wsService, isConnected, wsStatus } = useWebSocketConnection();
   const { convertTradeToTransaction } = useTradeProcessor();
-  
+
+  const currentWalletSubsRef = useRef<Set<string>>(new Set());
+
   const handleNewTransaction = useCallback((trade: TradeInfo) => {
     if (!trade || !trade.tx) {
       console.warn("Invalid trade data received:", trade);
       return;
     }
-    
+
     try {
       const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet?.toLowerCase());
       const transaction = convertTradeToTransaction(trade, wallet?.name);
-      
+
       setTransactions(prev => {
         const exists = prev.some(tx => tx.id === transaction.id);
         if (exists) {
           console.log(`Transaction ${transaction.id} already exists, skipping`);
           return prev;
         }
-        
+
         return [transaction, ...prev].slice(0, 100);
       });
     } catch (error) {
       console.error("Error processing transaction:", error);
     }
   }, [wallets, convertTradeToTransaction]);
-  
+
+  useEffect(() => {
+    if (!wsService || !isConnected) return;
+
+    const subscribeToWallet = (address: string, name?: string) => {
+      const roomName = `wallet:${address}`;
+      wsService.joinRoom(roomName);
+      const handler = (data: TradeInfo) => {
+        if (data) {
+          data.walletName = name || undefined;
+        }
+        handleNewTransaction(data);
+      };
+      wsService.on(roomName, handler);
+
+      return () => wsService.off(roomName, handler);
+    };
+
+    const unsubHandlers: Array<() => void> = [];
+
+    wallets.forEach(wallet => {
+      if (!currentWalletSubsRef.current.has(wallet.address)) {
+        const off = subscribeToWallet(wallet.address, wallet.name);
+        unsubHandlers.push(off);
+        currentWalletSubsRef.current.add(wallet.address);
+      }
+    });
+
+    const currentWalletsSet = new Set(wallets.map(w => w.address));
+    currentWalletSubsRef.current.forEach(address => {
+      if (!currentWalletsSet.has(address)) {
+        const roomName = `wallet:${address}`;
+        wsService.leaveRoom(roomName);
+        currentWalletSubsRef.current.delete(address);
+      }
+    });
+
+    return () => {
+      unsubHandlers.forEach(unsub => unsub());
+    };
+  }, [wallets, wsService, isConnected, handleNewTransaction]);
+
   const clearTransactions = useCallback(() => {
     setTransactions([]);
   }, []);
-  
+
   const generateTestTransaction = useCallback(() => {
     if (wallets.length === 0) {
       toast({
@@ -64,47 +107,41 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       });
       return;
     }
-    
+
     const randomWallet = wallets[Math.floor(Math.random() * wallets.length)];
     const testTrade = simulateTrade(randomWallet.address, randomWallet.name);
-    
+
     handleNewTransaction(testTrade);
-    
+
     toast({
       title: "Test transaction generated",
       description: `Added test ${testTrade.type.toUpperCase()} transaction for ${randomWallet.name}`,
     });
   }, [wallets, handleNewTransaction]);
-  
+
   const subscribeToTestWallet = useCallback(async (address: string) => {
-    console.log(`Setting up test wallet listener for address ${address}`);
-    
     if (!wsService || !isConnected) {
       throw new Error("WebSocket not connected");
     }
-    
+
     const roomName = `wallet:${address}`;
-    
-    // First, unsubscribe from any existing test wallet
+
     const existingTestRooms = Array.from(wsService.subscribedRooms).filter(
       room => room.startsWith('wallet:') && !wallets.some(w => room === `wallet:${w.address}`)
     );
-    
+
     existingTestRooms.forEach(room => {
       console.log(`Leaving existing test room: ${room}`);
       wsService.leaveRoom(room);
     });
-    
+
     try {
-      // Fetch historical trades for the test wallet
-      console.log(`Fetching historical trades for test wallet ${address}`);
       const historicalData = await getWalletTrades(address);
-      
+
       if (historicalData?.trades?.length) {
         console.log(`Received ${historicalData.trades.length} historical trades for test wallet`);
-        
+
         const historicalTransactions = historicalData.trades.map(trade => {
-          // Create a properly formatted TradeInfo object from historical data
           const tradeInfo: TradeInfo = {
             tx: trade.tx,
             wallet: trade.wallet,
@@ -119,7 +156,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
                 amount: trade.to.amount
               }
             },
-            // Add the missing required properties
             amount: trade.to.amount,
             priceUsd: trade.price.usd,
             solVolume: parseFloat(trade.volume.sol.toString()),
@@ -127,7 +163,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
             time: trade.time,
             program: trade.program
           };
-          
+
           return convertTradeToTransaction(tradeInfo, "Test Wallet");
         });
 
@@ -149,29 +185,26 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
         variant: "destructive"
       });
     }
-    
-    // Subscribe to live trades
+
     wsService.joinRoom(roomName);
     console.log(`Subscribed to test wallet room: ${roomName}`);
-    
-    // Add listener for this specific room
+
     wsService.on(roomName, (data) => {
       console.log(`Live trade received for test wallet:`, data);
-      
-      // Set a temporary wallet name
+
       if (data) {
         data.walletName = "Test Wallet";
       }
-      
+
       handleNewTransaction(data);
     });
-    
+
     toast({
       title: "Test Wallet Monitoring",
       description: `Successfully subscribed to ${address.slice(0, 4)}...${address.slice(-4)}`,
     });
   }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
-  
+
   const value = {
     transactions,
     clearTransactions,
@@ -180,7 +213,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     generateTestTransaction,
     subscribeToTestWallet,
   };
-  
+
   return (
     <TransactionContext.Provider value={value}>
       {children}
