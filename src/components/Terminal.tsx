@@ -1,5 +1,6 @@
+
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 import WebSocketDebugPanel from './WebSocketDebugPanel';
 import { useTransactionContext } from '@/contexts/TransactionContext';
@@ -11,7 +12,6 @@ import { Code } from "lucide-react";
 const Terminal: React.FC = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
-  const [showDebug, setShowDebug] = useState(false);
   const [rawDrawerOpen, setRawDrawerOpen] = useState(false);
   const { 
     transactions, 
@@ -43,10 +43,6 @@ const Terminal: React.FC = () => {
     });
   };
 
-  const toggleDebug = () => {
-    setShowDebug(prev => !prev);
-  };
-
   return (
     <div className="bg-terminal-background text-terminal-text border border-terminal-muted rounded-md shadow-lg flex flex-col h-full w-full">
       <div className="flex items-center justify-between px-4 py-2 bg-black border-b border-terminal-muted">
@@ -74,16 +70,6 @@ const Terminal: React.FC = () => {
             variant="ghost"
             size="sm"
             className="text-terminal-muted hover:text-terminal-text"
-            onClick={toggleDebug}
-            title="Toggle debug info"
-          >
-            <AlertCircle size={14} />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-terminal-muted hover:text-terminal-text"
             onClick={handleClearTransactions}
             title="Clear transactions"
           >
@@ -93,35 +79,6 @@ const Terminal: React.FC = () => {
       </div>
       
       <RawWebSocketDataDrawer open={rawDrawerOpen} onOpenChange={setRawDrawerOpen} />
-      
-      {showDebug && (
-        <div className="text-xs bg-black p-2 border-b border-terminal-muted font-mono">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              {isConnected ? (
-                <Wifi size={12} className="text-terminal-success mr-1" />
-              ) : (
-                <WifiOff size={12} className="text-terminal-error mr-1" />
-              )}
-              <span>WebSocket Status: {isConnected ? 'Connected' : 'Disconnected'}</span>
-            </div>
-            <div className="text-terminal-muted">
-              Tracking {transactions.length} transactions
-            </div>
-          </div>
-          
-          {wsStatus && (
-            <div className="mt-1 text-terminal-muted">
-              <div>Socket States: Main={wsStatus.mainSocketState}, Transaction={wsStatus.transactionSocketState}</div>
-              <div className="truncate">
-                Rooms: {wsStatus.subscribedRooms?.join(', ') || 'None'}
-              </div>
-            </div>
-          )}
-          
-          <WebSocketDebugPanel />
-        </div>
-      )}
       
       <div 
         ref={terminalRef}
@@ -145,3 +102,4 @@ const Terminal: React.FC = () => {
 };
 
 export default Terminal;
+
