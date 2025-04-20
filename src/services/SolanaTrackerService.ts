@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
@@ -30,6 +31,17 @@ export interface TradeInfo {
   time: number;
   program: string;
   token: TradeTokenInfo;
+  // These are fields we might get from historical data
+  from?: {
+    address: string;
+    amount: number;
+    token: TokenInfo;
+  };
+  to?: {
+    address: string;
+    amount: number;
+    token: TokenInfo;
+  };
 }
 
 export interface WalletTradeResponse {
@@ -120,20 +132,20 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
   const toToken = tradeType === 'buy' ? nonSOLToken : randomTokens[0];
   
   const fromAmount = tradeType === 'buy' 
-    ? (Math.random() * 10).toFixed(fromToken.decimals)
-    : (Math.random() * 1000).toFixed(fromToken.decimals);
+    ? (Math.random() * 10)
+    : (Math.random() * 1000);
     
   const toAmount = tradeType === 'buy'
-    ? (Math.random() * 1000).toFixed(toToken.decimals)
-    : (Math.random() * 10).toFixed(toToken.decimals);
+    ? (Math.random() * 1000)
+    : (Math.random() * 10);
   
   const usdValue = Math.random() * 500 + 10;
   
   return {
     tx: 'sim_' + Math.random().toString(36).substring(2, 15),
-    amount: parseFloat(toAmount),
-    priceUsd: usdValue / parseFloat(toAmount),
-    solVolume: parseFloat(fromToken.symbol === 'SOL' ? fromAmount : toAmount),
+    amount: toAmount,
+    priceUsd: usdValue / toAmount,
+    solVolume: fromToken.symbol === 'SOL' ? fromAmount : toAmount,
     volume: usdValue,
     type: tradeType,
     wallet: walletAddress,
@@ -145,14 +157,14 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
         symbol: fromToken.symbol,
         image: fromToken.image,
         decimals: fromToken.decimals,
-        amount: parseFloat(fromAmount)
+        amount: fromAmount
       },
       to: {
         name: toToken.name,
         symbol: toToken.symbol,
         image: toToken.image,
         decimals: toToken.decimals,
-        amount: parseFloat(toAmount)
+        amount: toAmount
       }
     }
   };

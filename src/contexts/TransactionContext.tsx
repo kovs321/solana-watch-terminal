@@ -64,13 +64,24 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     const toToken = trade.token?.to?.symbol || "UNKNOWN";
     
     // Handle amounts safely, ensuring proper number handling
-    const fromAmount = trade.token?.from?.amount !== undefined 
-      ? trade.token.from.amount 
-      : 0;
+    let fromAmount: number | string = 0;
+    let toAmount: number | string = 0;
     
-    const toAmount = trade.token?.to?.amount !== undefined 
-      ? trade.token.to.amount 
-      : 0;
+    // Extract 'from' token amount, checking all possible paths
+    if (trade.token?.from?.amount !== undefined) {
+      fromAmount = trade.token.from.amount;
+    } else if (trade.from?.amount !== undefined) {
+      fromAmount = trade.from.amount;
+    }
+    
+    // Extract 'to' token amount, checking all possible paths
+    if (trade.token?.to?.amount !== undefined) {
+      toAmount = trade.token.to.amount;
+    } else if (trade.to?.amount !== undefined) {
+      toAmount = trade.to.amount;
+    } else if (trade.amount !== undefined) {
+      toAmount = trade.amount;
+    }
     
     // Handle USD value safely
     let usdValue = 0;
@@ -188,8 +199,14 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
             wallet: trade.wallet,
             type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
             token: {
-              from: trade.from.token,
-              to: trade.to.token
+              from: {
+                ...trade.from.token,
+                amount: trade.from.amount
+              },
+              to: {
+                ...trade.to.token,
+                amount: trade.to.amount
+              }
             },
             // Add the missing required properties
             amount: trade.to.amount,
@@ -326,8 +343,14 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
               wallet: trade.wallet,
               type: trade.from.token.symbol === 'SOL' ? 'sell' : 'buy',
               token: {
-                from: trade.from.token,
-                to: trade.to.token
+                from: {
+                  ...trade.from.token,
+                  amount: trade.from.amount
+                },
+                to: {
+                  ...trade.to.token,
+                  amount: trade.to.amount
+                }
               },
               // Add the missing required properties
               amount: trade.to.amount,

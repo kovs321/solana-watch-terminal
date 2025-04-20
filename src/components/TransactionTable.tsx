@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useTransactionContext, SolanaTransaction } from "@/contexts/TransactionContext";
@@ -30,7 +29,9 @@ const TransactionTable = () => {
     // If it's a very small number, preserve the original precision
     if (numAmount < 0.01) {
       // Show at least 6 decimal places for very small numbers
-      return numAmount.toFixed(6).replace(/\.?0+$/, '');
+      const fixedValue = numAmount.toFixed(6);
+      // Remove trailing zeros but keep at least one decimal place
+      return parseFloat(fixedValue).toString();
     }
     
     // If it's a large number with decimals, show 2 decimal places
