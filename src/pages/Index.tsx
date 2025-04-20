@@ -2,6 +2,7 @@
 import React from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
+import AddWalletForm from '@/components/AddWalletForm';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 
 const Index = () => {
