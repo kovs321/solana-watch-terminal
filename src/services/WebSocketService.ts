@@ -1,8 +1,8 @@
-
 import EventEmitter from "eventemitter3";
 
 class WebSocketService {
   wsUrl: string;
+  apiKey: string;
   socket: WebSocket | null;
   transactionSocket: WebSocket | null;
   reconnectAttempts: number;
@@ -14,8 +14,9 @@ class WebSocketService {
   transactions: Set<string>;
   isConnected: boolean;
 
-  constructor(wsUrl: string) {
+  constructor(wsUrl: string, apiKey: string) {
     this.wsUrl = wsUrl;
+    this.apiKey = apiKey;
     this.socket = null;
     this.transactionSocket = null;
     this.reconnectAttempts = 0;
@@ -39,9 +40,12 @@ class WebSocketService {
     }
 
     try {
-      console.log(`Connecting to WebSocket server at ${this.wsUrl}...`);
-      this.socket = new WebSocket(this.wsUrl);
-      this.transactionSocket = new WebSocket(this.wsUrl);
+      const authenticatedUrl = `${this.wsUrl}?apiKey=${this.apiKey}`;
+      console.log(`Connecting to WebSocket server at ${authenticatedUrl}...`);
+      
+      this.socket = new WebSocket(authenticatedUrl);
+      this.transactionSocket = new WebSocket(authenticatedUrl);
+      
       this.setupSocketListeners(this.socket, "main");
       this.setupSocketListeners(this.transactionSocket, "transaction");
     } catch (e) {
@@ -93,7 +97,6 @@ class WebSocketService {
         } else if (message.type === "system") {
           console.log(`System message: ${message.event}`, message);
           
-          // Handle subscription confirmation
           if (message.event === "subscribed") {
             console.log(`Successfully subscribed to room: ${message.room}`);
           }
@@ -138,13 +141,13 @@ class WebSocketService {
     console.log(`Joining room: ${room}`);
     this.subscribedRooms.add(room);
     
-    const socket = room.includes("transaction")
+    const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
       
     if (socket && socket.readyState === WebSocket.OPEN) {
       const message = JSON.stringify({ type: "join", room });
-      console.log(`Sending join request for room ${room}:`, message);
+      console.log(`Sending join request for room ${room} on ${room.startsWith("wallet:") ? "transaction" : "main"} socket:`, message);
       socket.send(message);
     } else {
       console.warn(`Cannot join room ${room}, socket not ready (state: ${socket?.readyState})`);
@@ -182,7 +185,8 @@ class WebSocketService {
       connected: this.isConnected,
       mainSocketState: this.socket?.readyState,
       transactionSocketState: this.transactionSocket?.readyState,
-      subscribedRooms: Array.from(this.subscribedRooms)
+      subscribedRooms: Array.from(this.subscribedRooms),
+      authenticated: !!this.apiKey
     };
   }
 
@@ -196,7 +200,7 @@ class WebSocketService {
       this.transactionSocket.readyState === WebSocket.OPEN
     ) {
       for (const room of this.subscribedRooms) {
-        const socket = room.includes("transaction")
+        const socket = room.startsWith("wallet:") || room.includes("transaction")
           ? this.transactionSocket
           : this.socket;
           

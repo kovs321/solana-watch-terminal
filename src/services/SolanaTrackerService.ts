@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
@@ -159,8 +158,8 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
   };
 };
 
-// Constants for WebSocket connection
-export { WS_URL };
+// Export constants for WebSocket connection
+export { WS_URL, API_KEY };
 
 // Format date from timestamp
 export const formatTradeDate = (timestamp: number) => {

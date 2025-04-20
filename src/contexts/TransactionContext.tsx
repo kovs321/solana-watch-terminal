@@ -1,10 +1,10 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
 import { 
   TradeInfo, 
   WS_URL, 
+  API_KEY,
   getWalletTrades,
   formatTradeDate,
   simulateTrade
@@ -118,8 +118,8 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   }, [wallets, handleNewTransaction]);
   
   useEffect(() => {
-    console.log("Initializing WebSocket service...");
-    const service = new WebSocketService(WS_URL);
+    console.log("Initializing WebSocket service with API key...");
+    const service = new WebSocketService(WS_URL, API_KEY);
     setWsService(service);
     
     const checkConnection = setInterval(() => {
