@@ -2,6 +2,7 @@ import { toast } from "@/components/ui/use-toast";
 
 const BASE_URL = 'https://data.solanatracker.io';
 const WS_URL = 'wss://stream.solanatracker.io';
+const API_KEY = 'YOUR_API_KEY_HERE'; // Replace this with your Solana Tracker API key
 
 // Types for API responses
 export interface TokenInfo {
@@ -72,17 +73,6 @@ export const saveApiKey = (apiKey: string) => {
 
 // Get wallet trades
 export const getWalletTrades = async (walletAddress: string, cursor?: number) => {
-  const apiKey = getApiKey();
-  
-  if (!apiKey) {
-    toast({
-      title: "API Key Missing",
-      description: "Please add your Solana Tracker API key in the settings",
-      variant: "destructive",
-    });
-    return null;
-  }
-  
   try {
     const url = new URL(`/wallet/${walletAddress}/trades`, BASE_URL);
     if (cursor) {
@@ -91,7 +81,7 @@ export const getWalletTrades = async (walletAddress: string, cursor?: number) =>
     
     const response = await fetch(url.toString(), {
       headers: {
-        'x-api-key': apiKey,
+        'x-api-key': API_KEY,
         'Content-Type': 'application/json',
       },
     });

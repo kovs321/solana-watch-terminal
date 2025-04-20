@@ -28,8 +28,6 @@ interface TransactionContextType {
   transactions: SolanaTransaction[];
   clearTransactions: () => void;
   isConnected: boolean;
-  setApiKey: (key: string) => void;
-  apiKey: string | null;
 }
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
@@ -51,20 +49,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
   const [wsService, setWsService] = useState<WebSocketService | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(
-    localStorage.getItem('solana_tracker_api_key')
-  );
-  
-  const handleSetApiKey = useCallback((key: string) => {
-    localStorage.setItem('solana_tracker_api_key', key);
-    setApiKey(key);
-    toast({
-      title: "API Key Saved",
-      description: "Your Solana Tracker API key has been saved",
-    });
-    
-    window.location.reload();
-  }, []);
   
   const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
     return {
@@ -101,8 +85,6 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   }, []);
   
   useEffect(() => {
-    if (!apiKey) return;
-    
     const service = new WebSocketService(WS_URL);
     setWsService(service);
     
@@ -115,7 +97,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       service.disconnect();
       clearInterval(checkConnection);
     };
-  }, [apiKey]);
+  }, []);
   
   useEffect(() => {
     if (!wsService || !isConnected || wallets.length === 0) return;
@@ -132,56 +114,54 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
         handleNewTransaction(data);
       });
       
-      if (apiKey) {
-        getWalletTrades(wallet.address)
-          .then(response => {
-            if (response && response.trades) {
-              const historicalTransactions = response.trades.map(trade => {
-                const tradeInfo: TradeInfo = {
-                  tx: trade.tx,
-                  amount: trade.to.amount,
-                  priceUsd: trade.price.usd,
-                  solVolume: trade.volume.sol,
-                  volume: trade.volume.usd,
-                  type: trade.from.token.symbol === 'SOL' ? 'buy' : 'sell',
-                  wallet: trade.wallet,
-                  time: trade.time,
-                  program: trade.program,
-                  token: {
-                    from: {
-                      name: trade.from.token.name,
-                      symbol: trade.from.token.symbol,
-                      image: trade.from.token.image,
-                      decimals: trade.from.token.decimals,
-                      address: trade.from.address,
-                      amount: trade.from.amount
-                    },
-                    to: {
-                      name: trade.to.token.name,
-                      symbol: trade.to.token.symbol,
-                      image: trade.to.token.image,
-                      decimals: trade.to.token.decimals,
-                      address: trade.to.address,
-                      amount: trade.to.amount
-                    }
+      getWalletTrades(wallet.address)
+        .then(response => {
+          if (response && response.trades) {
+            const historicalTransactions = response.trades.map(trade => {
+              const tradeInfo: TradeInfo = {
+                tx: trade.tx,
+                amount: trade.to.amount,
+                priceUsd: trade.price.usd,
+                solVolume: trade.volume.sol,
+                volume: trade.volume.usd,
+                type: trade.from.token.symbol === 'SOL' ? 'buy' : 'sell',
+                wallet: trade.wallet,
+                time: trade.time,
+                program: trade.program,
+                token: {
+                  from: {
+                    name: trade.from.token.name,
+                    symbol: trade.from.token.symbol,
+                    image: trade.from.token.image,
+                    decimals: trade.from.token.decimals,
+                    address: trade.from.address,
+                    amount: trade.from.amount
+                  },
+                  to: {
+                    name: trade.to.token.name,
+                    symbol: trade.to.token.symbol,
+                    image: trade.to.token.image,
+                    decimals: trade.to.token.decimals,
+                    address: trade.to.address,
+                    amount: trade.to.amount
                   }
-                };
-                
-                return convertTradeToTransaction(tradeInfo, wallet.name);
-              });
+                }
+              };
               
-              setTransactions(prev => {
-                const combined = [...prev, ...historicalTransactions];
-                const unique = Array.from(
-                  new Map(combined.map(tx => [tx.id, tx])).values()
-                ).sort((a, b) => b.timestamp - a.timestamp);
-                
-                return unique.slice(0, 100);
-              });
-            }
-          })
-          .catch(console.error);
-      }
+              return convertTradeToTransaction(tradeInfo, wallet.name);
+            });
+            
+            setTransactions(prev => {
+              const combined = [...prev, ...historicalTransactions];
+              const unique = Array.from(
+                new Map(combined.map(tx => [tx.id, tx])).values()
+              ).sort((a, b) => b.timestamp - a.timestamp);
+              
+              return unique.slice(0, 100);
+            });
+          }
+        })
+        .catch(console.error);
     });
     
     return () => {
@@ -190,14 +170,12 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       });
       wsService.emitter.removeAllListeners();
     };
-  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction, apiKey]);
+  }, [wsService, isConnected, wallets, handleNewTransaction, convertTradeToTransaction]);
   
   const value = {
     transactions,
     clearTransactions,
     isConnected,
-    setApiKey: handleSetApiKey,
-    apiKey,
   };
   
   return (

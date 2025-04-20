@@ -1,12 +1,10 @@
-
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useTransactionContext, SolanaTransaction } from "@/contexts/TransactionContext";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { ApiKeyForm } from "./ApiKeyForm";
 
 const TransactionTable = () => {
-  const { transactions, isConnected, apiKey } = useTransactionContext();
+  const { transactions, isConnected } = useTransactionContext();
   const [showNoData, setShowNoData] = useState(false);
 
   // Show no data message after a delay (to avoid flickering)
@@ -17,10 +15,6 @@ const TransactionTable = () => {
     
     return () => clearTimeout(timer);
   }, [transactions.length]);
-
-  if (!apiKey) {
-    return <ApiKeyForm />;
-  }
 
   return (
     <div className="font-mono text-sm overflow-x-auto">
