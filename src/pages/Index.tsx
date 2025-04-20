@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -70,19 +69,21 @@ const Index = () => {
             aria-label="solana terminal ascii"
             className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1"
             style={{
-              textShadow: "0 0 8px #00FF00, 0 0 2px #00FF00",
+              // No text shadow for glow effect
               userSelect: 'none'
             }}
           >{TERMINAL_ASCII}</pre>
-          <p 
-            className="text-center text-lg sm:text-xl md:text-2xl font-semibold text-terminal-highlight font-mono mb-6"
-            style={{
-              textShadow: "0 0 12px #00FF00",
-              userSelect: 'none'
-            }}
-          >
-            crowdsourced insider information
-          </p>
+          <div className="flex justify-center mb-10">
+            <span 
+              className="text-center text-2xl sm:text-4xl md:text-5xl font-bold text-terminal-highlight font-mono"
+              style={{
+                // Remove text shadow, keep flat neon color
+                userSelect: 'none'
+              }}
+            >
+              crowdsourced insider information
+            </span>
+          </div>
           
           {/* Wallet controls row */}
           <div className="flex justify-center gap-2 mb-4 items-center">
@@ -111,4 +112,3 @@ const Index = () => {
 };
 
 export default Index;
-
