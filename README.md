@@ -1,8 +1,40 @@
-# Welcome to your Lovable project
+# Solana Watch Terminal
+
+A terminal-style Solana wallet transaction tracker with real-time updates.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/143731fc-993b-4d9b-b956-f7d85c2f3381
+
+## Features
+
+- Terminal-style UI for tracking Solana wallet transactions
+- Real-time transaction updates via Solana's websocket API
+- Connect your Solana wallet to add new wallets to track
+- Persistent storage of tracked wallets using Supabase
+- Community-based wallet tracking - see transactions from wallets added by any user
+
+## Supabase Setup Instructions
+
+This project uses Supabase for backend functionality. To set it up:
+
+1. Create a free Supabase account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Create a new table called `wallets` with the following schema:
+   - `id` (int8, primary key)
+   - `address` (text, not null)
+   - `name` (text, not null)
+   - `created_at` (timestamptz, default: now())
+4. Add a unique constraint on the `address` column
+5. Get your Supabase URL and anon key from the API settings
+6. Update the values in `src/lib/supabase.ts`:
+   ```js
+   const supabaseUrl = 'YOUR_SUPABASE_URL';
+   const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+   const useLocalStorageFallback = false; // Set to false after configuring Supabase
+   ```
+
+**Note:** For demo purposes, the app uses localStorage to store wallets until Supabase is properly configured.
 
 ## How can I edit this code?
 

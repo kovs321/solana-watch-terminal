@@ -98,4 +98,45 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Terminal specific styles */
+  body {
+    @apply bg-black;
+  }
+  
+  /* Custom scrollbar for terminal vibe */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1A1F2C;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  /* Terminal font */
+  .font-mono {
+    font-family: "Courier New", monospace;
+  }
+  
+  /* Terminal blinking cursor effect */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  
+  .cursor-blink::after {
+    content: "|";
+    margin-left: 2px;
+    animation: blink 1s infinite;
+  }
 }

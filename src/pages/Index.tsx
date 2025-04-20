@@ -1,11 +1,41 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React from 'react';
+import Terminal from '@/components/Terminal';
+import WalletList from '@/components/WalletList';
+import AddWalletForm from '@/components/AddWalletForm';
+import ConnectWallet from '@/components/ConnectWallet';
+import { useInitialWallets } from '@/hooks/useInitialWallets';
 
 const Index = () => {
+  // Initialize sample wallets
+  useInitialWallets();
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-black text-terminal-text font-mono">
+      <div className="container mx-auto px-4 py-8">
+        <header className="mb-6 text-center">
+          <h1 className="text-2xl font-bold text-terminal-highlight mb-2">Solana Watch Terminal</h1>
+          <p className="text-terminal-muted text-sm">Track real-time transactions from Solana wallets</p>
+        </header>
+        
+        <ConnectWallet />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+          <div className="lg:col-span-3">
+            <Terminal />
+          </div>
+          
+          <div className="space-y-4">
+            <WalletList />
+            <AddWalletForm />
+          </div>
+        </div>
+        
+        <footer className="mt-8 text-center text-xs text-terminal-muted">
+          <p>Solana Watch Terminal &copy; {new Date().getFullYear()}</p>
+          <p className="mt-1">
+            Real-time Solana blockchain transaction monitoring
+          </p>
+        </footer>
       </div>
     </div>
   );
