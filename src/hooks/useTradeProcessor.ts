@@ -8,8 +8,13 @@ export const useTradeProcessor = () => {
   const convertTradeToTransaction = useCallback((trade: TradeInfo, walletName?: string): SolanaTransaction => {
     console.log("Converting trade to transaction:", trade);
     
-    const fromToken = trade.token?.from?.symbol || "UNKNOWN";
-    const toToken = trade.token?.to?.symbol || "UNKNOWN";
+    // Extract token symbols with better fallbacks
+    const fromToken = trade.token?.from?.symbol || trade.from?.token?.symbol || "UNKNOWN";
+    const toToken = trade.token?.to?.symbol || trade.to?.token?.symbol || "UNKNOWN";
+    
+    // Extract token names for additional display information
+    const fromTokenName = trade.token?.from?.name || trade.from?.token?.name || "";
+    const toTokenName = trade.token?.to?.name || trade.to?.token?.name || "";
     
     let fromAmount: number | string = 0;
     let toAmount: number | string = 0;
@@ -44,8 +49,10 @@ export const useTradeProcessor = () => {
       walletName: walletName || undefined,
       type: trade.type?.toUpperCase() as 'BUY' | 'SELL',
       fromToken,
+      fromTokenName,
       fromAmount,
       toToken,
+      toTokenName,
       toAmount,
       program: trade.program || 'Unknown',
       usdValue,

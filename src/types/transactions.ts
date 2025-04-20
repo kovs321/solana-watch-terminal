@@ -5,8 +5,10 @@ export interface SolanaTransaction {
   walletName?: string;
   type: 'BUY' | 'SELL';
   fromToken: string;
+  fromTokenName?: string;
   fromAmount: number | string;
   toToken: string;
+  toTokenName?: string;
   toAmount: number | string;
   program: string;
   usdValue: number;

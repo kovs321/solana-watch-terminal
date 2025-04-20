@@ -50,6 +50,16 @@ const TransactionTable = () => {
     return numAmount.toFixed(5);
   };
 
+  // Format token symbol with name if available when token is UNKNOWN
+  const formatTokenSymbol = (symbol: string, name?: string) => {
+    if (symbol === 'UNKNOWN' && name && name.length > 0) {
+      // Display a shortened version of the token name
+      const shortName = name.length > 12 ? name.substring(0, 10) + '...' : name;
+      return `${shortName}`;
+    }
+    return symbol;
+  };
+
   return (
     <div className="font-mono text-sm overflow-x-auto">
       {!isConnected && (
@@ -91,7 +101,7 @@ const TransactionTable = () => {
                   {tx.walletName || (tx.walletAddress ? tx.walletAddress.slice(0, 4) + '...' + tx.walletAddress.slice(-4) : 'Unknown')}
                 </TableCell>
                 <TableCell className="text-terminal-highlight">
-                  {formatTokenAmount(tx.fromAmount)} {tx.fromToken} → {formatTokenAmount(tx.toAmount)} {tx.toToken}
+                  {formatTokenAmount(tx.fromAmount)} {formatTokenSymbol(tx.fromToken, tx.fromTokenName)} → {formatTokenAmount(tx.toAmount)} {formatTokenSymbol(tx.toToken, tx.toTokenName)}
                 </TableCell>
                 <TableCell className="text-terminal-muted">{tx.program}</TableCell>
                 <TableCell className="text-right text-terminal-text">
