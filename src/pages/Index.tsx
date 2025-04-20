@@ -8,7 +8,6 @@ import { TransactionProvider, useTransactionContext } from '@/contexts/Transacti
 import { Button } from '@/components/ui/button';
 import { Radio } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
 |      \\|  \\  |  \\ /      \\ |      \\|       \\ |        \\|       \\ 
@@ -23,64 +22,41 @@ const TERMINAL_ASCII = `
                                                                   
                                                                   
 `;
-
 function MonitoringButton() {
-  const { startMonitoringAllWallets, monitoringActive, wsStatus } = useTransactionContext();
+  const {
+    startMonitoringAllWallets,
+    monitoringActive,
+    wsStatus
+  } = useTransactionContext();
   const monitoredRooms = wsStatus?.subscribedRooms || [];
   const activeWalletRooms = monitoredRooms.filter(room => room.startsWith('wallet:'));
-
   const handleStartMonitoring = () => {
     startMonitoringAllWallets();
-
     toast({
       title: 'Wallet Monitoring Started',
-      description: `Now monitoring wallets for transactions`,
+      description: `Now monitoring wallets for transactions`
     });
   };
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ml-4 font-mono flex items-center ${
-        monitoringActive ? 'border-terminal-success text-terminal-success' : ''
-      }`}
-      onClick={handleStartMonitoring}
-      disabled={monitoringActive}
-      title={monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring All Wallets'}
-    >
+  return <Button variant="outline" size="sm" className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ml-4 font-mono flex items-center ${monitoringActive ? 'border-terminal-success text-terminal-success' : ''}`} onClick={handleStartMonitoring} disabled={monitoringActive} title={monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring All Wallets'}>
       <Radio size={14} className={`mr-1 ${monitoringActive ? 'text-terminal-success' : ''}`} />
-      {monitoringActive
-        ? `Monitoring ${activeWalletRooms.length} Wallets`
-        : 'Start Monitoring'}
-    </Button>
-  );
+      {monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring'}
+    </Button>;
 }
-
 const Index = () => {
   useInitialWallets();
-
-  return (
-    <TransactionProvider>
+  return <TransactionProvider>
       <div className="min-h-screen bg-terminal-background text-terminal-text font-mono relative">
         <div className="container mx-auto px-4 py-8 z-10 relative">
           {/* ASCII Art header */}
-          <pre 
-            aria-label="solana terminal ascii"
-            className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1"
-            style={{
-              // No text shadow for glow effect
-              userSelect: 'none'
-            }}
-          >{TERMINAL_ASCII}</pre>
+          <pre aria-label="solana terminal ascii" className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1" style={{
+          // No text shadow for glow effect
+          userSelect: 'none'
+        }}>{TERMINAL_ASCII}</pre>
           <div className="flex justify-center mb-10">
-            <span 
-              className="text-center text-2xl sm:text-4xl md:text-5xl font-bold text-terminal-highlight font-mono"
-              style={{
-                // Remove text shadow, keep flat neon color
-                userSelect: 'none'
-              }}
-            >
+            <span style={{
+            // Remove text shadow, keep flat neon color
+            userSelect: 'none'
+          }} className="text-center text-2xl sm:text-4xl font-bold text-terminal-highlight font-mono md:text-2xl">
               crowdsourced insider information
             </span>
           </div>
@@ -107,8 +83,6 @@ const Index = () => {
           </footer>
         </div>
       </div>
-    </TransactionProvider>
-  );
+    </TransactionProvider>;
 };
-
 export default Index;
