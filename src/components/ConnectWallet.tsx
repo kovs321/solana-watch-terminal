@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 const ConnectWallet: React.FC = () => {
   const { connected, disconnect } = useWallet();
+  const walletButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="my-4 flex justify-center space-x-4">
@@ -35,16 +36,18 @@ const ConnectWallet: React.FC = () => {
       ) : (
         <>
           {/* Place the WalletMultiButton in the DOM but visually hidden */}
-          <WalletMultiButton className="hidden" id="wallet-adapter-button" />
+          <WalletMultiButton 
+            className="hidden" 
+            ref={walletButtonRef as any} 
+          />
           
           <Button
             variant="default"
             className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
             onClick={() => {
-              // Find the wallet button by ID and trigger its click event
-              const walletButton = document.getElementById('wallet-adapter-button') as HTMLButtonElement;
-              if (walletButton) {
-                walletButton.click();
+              // Use the ref to access the button element
+              if (walletButtonRef.current) {
+                walletButtonRef.current.click();
               }
             }}
           >
