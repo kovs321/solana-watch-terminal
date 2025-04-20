@@ -1,4 +1,3 @@
-
 import EventEmitter from "eventemitter3";
 
 class WebSocketService {
@@ -61,6 +60,17 @@ class WebSocketService {
       console.log(`Connected to ${type} WebSocket server`);
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      
+      // Send a ping immediately after connection to test the connection
+      if (socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
+          console.log(`Sent initial ping on ${type} socket`);
+        } catch (e) {
+          console.error(`Error sending initial ping on ${type} socket:`, e);
+        }
+      }
+      
       this.resubscribeToRooms();
     };
 
@@ -102,6 +112,10 @@ class WebSocketService {
           if (message.event === "subscribed") {
             console.log(`Successfully subscribed to room: ${message.room}`);
           }
+        } else if (message.type === "pong") {
+          console.log(`Received pong response on ${type} socket`);
+        } else {
+          console.log(`Unknown message type on ${type} socket:`, message);
         }
       } catch (error) {
         console.error("Error processing message:", error);
@@ -137,6 +151,31 @@ class WebSocketService {
       this.reconnectAttempts++;
       this.connect();
     }, reconnectDelay);
+  }
+
+  startPingInterval() {
+    // Send a ping every 30 seconds to keep the connection alive
+    const pingInterval = setInterval(() => {
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        try {
+          this.socket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
+          console.log("Sent ping on main socket");
+        } catch (e) {
+          console.error("Error sending ping on main socket:", e);
+        }
+      }
+      
+      if (this.transactionSocket && this.transactionSocket.readyState === WebSocket.OPEN) {
+        try {
+          this.transactionSocket.send(JSON.stringify({ type: "ping", client: "solana-tracker" }));
+          console.log("Sent ping on transaction socket");
+        } catch (e) {
+          console.error("Error sending ping on transaction socket:", e);
+        }
+      }
+    }, 30000);
+    
+    return pingInterval;
   }
 
   joinRoom(room: string) {
@@ -212,6 +251,9 @@ class WebSocketService {
         console.log(`Resubscribing to room ${room}:`, message);
         socket.send(message);
       }
+      
+      // Start the ping interval after resubscribing
+      this.startPingInterval();
     } else {
       console.warn("Cannot resubscribe to rooms, sockets not ready");
     }
@@ -219,4 +261,3 @@ class WebSocketService {
 }
 
 export default WebSocketService;
-

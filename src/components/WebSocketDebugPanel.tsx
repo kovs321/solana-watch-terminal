@@ -2,10 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardHeader, CardContent } from './ui/card';
+import { Button } from './ui/button';
+import { Trash } from 'lucide-react';
 
 interface WebSocketMessage {
   timestamp: string;
   type: string;
+  direction: 'incoming' | 'outgoing';
   data: any;
 }
 
@@ -13,6 +16,7 @@ const WebSocketDebugPanel = () => {
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   
   useEffect(() => {
+    // Function to handle incoming messages
     const handleWebSocketMessage = (event: MessageEvent) => {
       const now = new Date().toISOString();
       try {
@@ -20,10 +24,18 @@ const WebSocketDebugPanel = () => {
         setMessages(prev => [{
           timestamp: now,
           type: data.type || 'unknown',
+          direction: 'incoming',
           data: data
         }, ...prev].slice(0, 100)); // Keep last 100 messages
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
+        // Still log raw messages that can't be parsed
+        setMessages(prev => [{
+          timestamp: now,
+          type: 'unparseable',
+          direction: 'incoming',
+          data: { raw: event.data }
+        }, ...prev].slice(0, 100));
       }
     };
 
@@ -36,41 +48,100 @@ const WebSocketDebugPanel = () => {
           const parsedData = JSON.parse(data);
           setMessages(prev => [{
             timestamp: now,
-            type: 'outgoing',
+            type: parsedData.type || 'unknown',
+            direction: 'outgoing',
             data: parsedData
           }, ...prev].slice(0, 100));
         } catch (error) {
           console.error('Error parsing outgoing WebSocket message:', error);
+          // Log raw outgoing messages that can't be parsed
+          setMessages(prev => [{
+            timestamp: now,
+            type: 'unparseable',
+            direction: 'outgoing',
+            data: { raw: typeof data === 'string' ? data : 'Binary data' }
+          }, ...prev].slice(0, 100));
         }
+      } else {
+        // Log binary data
+        setMessages(prev => [{
+          timestamp: now,
+          type: 'binary',
+          direction: 'outgoing',
+          data: { type: 'Binary data' }
+        }, ...prev].slice(0, 100));
       }
       return originalSend.call(this, data);
     };
 
-    // Listen for messages on all WebSocket instances
+    // Monitor both the message event on window and directly on WebSockets
     window.addEventListener('message', handleWebSocketMessage);
+    
+    // Add an enhanced message listener to all WebSocket instances
+    const originalAddEventListener = WebSocket.prototype.addEventListener;
+    WebSocket.prototype.addEventListener = function(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
+      if (type === 'message') {
+        const wrappedListener = function(event: MessageEvent) {
+          // Call the original listener
+          if (typeof listener === 'function') {
+            listener.call(this, event);
+          } else if (listener && typeof listener.handleEvent === 'function') {
+            listener.handleEvent(event);
+          }
+          
+          // Also log the message in our panel
+          handleWebSocketMessage(event);
+        };
+        
+        return originalAddEventListener.call(this, type, wrappedListener as EventListener, options);
+      } else {
+        return originalAddEventListener.call(this, type, listener, options);
+      }
+    };
 
     return () => {
       window.removeEventListener('message', handleWebSocketMessage);
       WebSocket.prototype.send = originalSend;
+      WebSocket.prototype.addEventListener = originalAddEventListener;
     };
   }, []);
 
+  const clearMessages = () => {
+    setMessages([]);
+  };
+
   return (
     <Card className="bg-black border-terminal-muted">
-      <CardHeader className="py-2">
+      <CardHeader className="py-2 flex flex-row items-center justify-between">
         <div className="text-xs font-mono text-terminal-muted">WebSocket Debug Panel</div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={clearMessages}
+          className="h-6 w-6 p-0 text-terminal-muted hover:text-terminal-error"
+        >
+          <Trash size={12} />
+        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[200px] w-full">
           <div className="p-2 space-y-2">
-            {messages.map((msg, index) => (
-              <div key={index} className="text-xs font-mono">
-                <div className="text-terminal-muted">{msg.timestamp} - {msg.type}</div>
-                <pre className="text-terminal-text overflow-x-auto p-1 bg-black/30 rounded">
-                  {JSON.stringify(msg.data, null, 2)}
-                </pre>
+            {messages.length > 0 ? (
+              messages.map((msg, index) => (
+                <div key={index} className="text-xs font-mono">
+                  <div className={`${msg.direction === 'outgoing' ? 'text-terminal-highlight' : 'text-terminal-muted'}`}>
+                    {msg.timestamp} - {msg.direction} {msg.type}
+                  </div>
+                  <pre className="text-terminal-text overflow-x-auto p-1 bg-black/30 rounded">
+                    {JSON.stringify(msg.data, null, 2)}
+                  </pre>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-terminal-muted py-4">
+                No WebSocket messages captured yet
               </div>
-            ))}
+            )}
           </div>
         </ScrollArea>
       </CardContent>
