@@ -77,8 +77,8 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     let usdValue = 0;
     if (typeof trade.volume === 'number') {
       usdValue = trade.volume;
-    } else if (trade.volume && typeof trade.volume.usd === 'number') {
-      usdValue = trade.volume.usd;
+    } else if (trade.volume && typeof trade.volume === 'object' && 'usd' in trade.volume) {
+      usdValue = trade.volume.usd as number;
     }
     
     return {

@@ -17,6 +17,26 @@ const TransactionTable = () => {
     return () => clearTimeout(timer);
   }, [transactions.length]);
 
+  // Format token amount to display non-zero values properly
+  const formatTokenAmount = (amount: string | undefined) => {
+    if (!amount) return '0.00';
+    
+    // Parse the string to a number
+    const numAmount = parseFloat(amount);
+    
+    // If it's zero or NaN, return 0.00
+    if (isNaN(numAmount) || numAmount === 0) return '0.00';
+    
+    // If it's a very small number, preserve the original precision
+    if (numAmount < 0.01) {
+      // Remove trailing zeros but show at least 6 decimal places for very small numbers
+      return numAmount.toFixed(8).replace(/\.?0+$/, '');
+    }
+    
+    // For normal numbers, show 2 decimal places
+    return numAmount.toFixed(2);
+  };
+
   return (
     <div className="font-mono text-sm overflow-x-auto">
       {!isConnected && (
@@ -58,7 +78,7 @@ const TransactionTable = () => {
                   {tx.walletName || (tx.walletAddress ? tx.walletAddress.slice(0, 4) + '...' + tx.walletAddress.slice(-4) : 'Unknown')}
                 </TableCell>
                 <TableCell className="text-terminal-highlight">
-                  {parseFloat(tx.fromAmount || '0').toFixed(2)} {tx.fromToken} → {parseFloat(tx.toAmount || '0').toFixed(2)} {tx.toToken}
+                  {formatTokenAmount(tx.fromAmount)} {tx.fromToken} → {formatTokenAmount(tx.toAmount)} {tx.toToken}
                 </TableCell>
                 <TableCell className="text-terminal-muted">{tx.program}</TableCell>
                 <TableCell className="text-right text-terminal-text">
