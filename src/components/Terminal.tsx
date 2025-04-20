@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Terminal as TerminalIcon } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 
@@ -18,7 +18,7 @@ const Terminal: React.FC = () => {
   };
 
   return (
-    <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 flex flex-col h-full w-full"> {/* Added w-full */}
+    <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 flex flex-col h-full w-full">
       {/* Terminal header */}
       <div className="flex items-center px-4 py-2 bg-black bg-opacity-30 border-b border-gray-800">
         <TerminalIcon size={18} className="mr-2 text-terminal-highlight" />
@@ -28,7 +28,7 @@ const Terminal: React.FC = () => {
       {/* Terminal content */}
       <div 
         ref={terminalRef}
-        className="flex-1 p-4 overflow-y-auto font-mono text-sm w-full" {/* Added w-full */}
+        className="flex-1 p-4 overflow-y-auto font-mono text-sm w-full"
         style={{ maxHeight: 'calc(100vh - 200px)' }}
         onScroll={handleScroll}
       >
