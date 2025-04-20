@@ -68,12 +68,15 @@ const Index = () => {
           {/* ASCII Art header */}
           <pre 
             aria-label="solana terminal ascii"
-            className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-4"
+            className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1"
             style={{
               textShadow: "0 0 8px #00FF00, 0 0 2px #00FF00",
               userSelect: 'none'
             }}
           >{TERMINAL_ASCII}</pre>
+          <p className="text-center text-xs text-terminal-muted font-mono mb-4" style={{ userSelect: 'none' }}>
+            crowdsourced insider information
+          </p>
           
           {/* Wallet controls row */}
           <div className="flex justify-center gap-2 mb-4 items-center">
@@ -102,3 +105,4 @@ const Index = () => {
 };
 
 export default Index;
+
