@@ -220,3 +220,5 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     </TransactionContext.Provider>
   );
 };
+
+export default TransactionContext;
