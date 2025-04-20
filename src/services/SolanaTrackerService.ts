@@ -28,6 +28,7 @@ export interface TradeInfo {
   volume: number;
   type: 'buy' | 'sell';
   wallet: string;
+  walletName?: string; // Added this optional property
   time: number;
   program: string;
   token: TradeTokenInfo;
