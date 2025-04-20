@@ -15,11 +15,16 @@ const ConnectWallet: React.FC = () => {
     <div className="my-4 flex justify-center space-x-4">
       {connected ? (
         <>
-          <WalletMultiButton 
+          {/* Custom styled WalletMultiButton - hidden, we'll use our own button */}
+          <WalletMultiButton style={{ display: 'none' }} />
+          <Button
+            variant="default"
             className="bg-terminal-highlight text-black font-mono border border-terminal-highlight rounded-md shadow-md px-4 py-2 h-auto flex items-center"
-          />
-          <Button 
-            variant="destructive" 
+          >
+            Connected
+          </Button>
+          <Button
+            variant="destructive"
             className="bg-terminal-error hover:bg-terminal-error/80 text-white font-mono flex items-center"
             onClick={() => disconnect()}
           >
@@ -28,16 +33,19 @@ const ConnectWallet: React.FC = () => {
           </Button>
         </>
       ) : (
-        <WalletMultiButton 
-          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight"
+        <Button
+          variant="default"
+          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
+          onClick={() => {
+            document.querySelector('button.wallet-adapter-button')?.click();
+          }}
         >
           <LogIn size={16} className="mr-2" />
           Connect Wallet
-        </WalletMultiButton>
+        </Button>
       )}
     </div>
   );
 };
 
 export default ConnectWallet;
-
