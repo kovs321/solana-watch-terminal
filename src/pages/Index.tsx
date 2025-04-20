@@ -41,9 +41,7 @@ const Index = () => {
           >{TERMINAL_ASCII}</pre>
           
           <header className="mb-5 text-center">
-            <h1 className="text-2xl font-bold text-terminal-highlight mb-2 drop-shadow-[0_0_6px_#00ff00]">
-              Solana Watch Terminal
-            </h1>
+            {/* Removed the Solana Watch Terminal line */}
             <p className="text-terminal-muted">$ tracking_solana_transactions --live</p>
           </header>
           
@@ -71,3 +69,4 @@ const Index = () => {
 };
 
 export default Index;
+
