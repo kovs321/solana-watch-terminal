@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff, MessageSquare, Play } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 import WebSocketDebugPanel from './WebSocketDebugPanel';
 import { useTransactionContext } from '@/contexts/TransactionContext';
@@ -16,7 +16,6 @@ const Terminal: React.FC = () => {
     clearTransactions, 
     isConnected, 
     wsStatus,
-    generateTestTransaction
   } = useTransactionContext();
 
   const handleScroll = () => {
@@ -40,10 +39,6 @@ const Terminal: React.FC = () => {
       title: "Transactions cleared",
       description: "All transaction history has been cleared from the display",
     });
-  };
-
-  const handleGenerateTest = () => {
-    generateTestTransaction();
   };
 
   const toggleDebug = () => {
@@ -72,16 +67,6 @@ const Terminal: React.FC = () => {
             title="Toggle debug info"
           >
             <AlertCircle size={14} />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-terminal-success hover:text-terminal-text"
-            onClick={handleGenerateTest}
-            title="Generate test transaction"
-          >
-            <Play size={14} />
           </Button>
           
           <Button
@@ -133,17 +118,6 @@ const Terminal: React.FC = () => {
       >
         <div className="text-terminal-text mb-4 flex items-center justify-between">
           <div>$ wallet-tracker --view-transactions</div>
-          
-          <div className="flex items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 text-xs text-terminal-highlight border-terminal-muted bg-black hover:bg-terminal-background/50"
-              onClick={handleGenerateTest}
-            >
-              Generate Test Transaction
-            </Button>
-          </div>
         </div>
         
         <TransactionTable />
@@ -158,3 +132,4 @@ const Terminal: React.FC = () => {
 };
 
 export default Terminal;
+
