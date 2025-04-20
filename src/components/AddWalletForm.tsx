@@ -4,15 +4,15 @@ import { useWalletContext } from '@/contexts/WalletContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AddWalletForm: React.FC = () => {
-  const { addNewWallet, walletAdapter } = useWalletContext();
+  const { walletAdapter } = useWalletContext();
   const [address, setAddress] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isValidSolanaAddress = (address: string): boolean => {
-    // Basic validation - Solana addresses are 44 characters, base58 encoded
     return /^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(address);
   };
 
@@ -40,31 +40,34 @@ const AddWalletForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const success = await addNewWallet(address, name);
+      const { error } = await supabase
+        .from('wallet_tracking')
+        .insert([
+          {
+            wallet_address: address,
+            name: name,
+            transaction_type: 'WATCH', // Default type for new wallets
+            token_name: 'ALL' // Default to watching all tokens
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Wallet added successfully",
+        description: `${name} (${address.substring(0, 4)}...${address.substring(address.length - 4)}) is now being tracked`,
+      });
       
-      if (success) {
-        toast({
-          title: "Wallet added successfully",
-          description: `${name} (${address.substring(0, 4)}...${address.substring(address.length - 4)}) is now being tracked`,
-        });
-        
-        // Reset form
-        setAddress('');
-        setName('');
-      } else {
-        toast({
-          title: "Failed to add wallet",
-          description: "This wallet may already be tracked",
-          variant: "destructive",
-        });
-      }
+      // Reset form
+      setAddress('');
+      setName('');
     } catch (error) {
+      console.error('Error adding wallet:', error);
       toast({
         title: "Error adding wallet",
-        description: "An unexpected error occurred",
+        description: "Failed to add wallet for tracking. Please try again.",
         variant: "destructive",
       });
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,7 +76,7 @@ const AddWalletForm: React.FC = () => {
   const isConnected = !!walletAdapter.connected;
   
   if (!isConnected) {
-    return null; // Hide this form when wallet is not connected
+    return null;
   }
 
   return (
