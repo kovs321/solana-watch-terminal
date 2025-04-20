@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import WebSocketService from '@/services/WebSocketService';
@@ -18,9 +17,9 @@ export interface SolanaTransaction {
   walletName?: string;
   type: 'BUY' | 'SELL';
   fromToken: string;
-  fromAmount: string;
+  fromAmount: number | string;
   toToken: string;
-  toAmount: string;
+  toAmount: number | string;
   program: string;
   usdValue: number;
   timestamp: number;
@@ -64,14 +63,14 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     const fromToken = trade.token?.from?.symbol || "UNKNOWN";
     const toToken = trade.token?.to?.symbol || "UNKNOWN";
     
-    // Handle amounts safely, ensuring they're strings with proper formatting
+    // Handle amounts safely, ensuring proper number handling
     const fromAmount = trade.token?.from?.amount !== undefined 
-      ? trade.token.from.amount.toString() 
-      : "0";
+      ? trade.token.from.amount 
+      : 0;
     
     const toAmount = trade.token?.to?.amount !== undefined 
-      ? trade.token.to.amount.toString() 
-      : "0";
+      ? trade.token.to.amount 
+      : 0;
     
     // Handle USD value safely
     let usdValue = 0;

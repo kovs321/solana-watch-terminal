@@ -18,23 +18,33 @@ const TransactionTable = () => {
   }, [transactions.length]);
 
   // Format token amount to display non-zero values properly
-  const formatTokenAmount = (amount: string | undefined) => {
-    if (!amount) return '0.00';
+  const formatTokenAmount = (amount: string | number | undefined) => {
+    if (amount === undefined || amount === null) return '0.00';
     
-    // Parse the string to a number
-    const numAmount = parseFloat(amount);
+    // Convert to number if it's a string
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     
     // If it's zero or NaN, return 0.00
     if (isNaN(numAmount) || numAmount === 0) return '0.00';
     
     // If it's a very small number, preserve the original precision
     if (numAmount < 0.01) {
-      // Remove trailing zeros but show at least 6 decimal places for very small numbers
-      return numAmount.toFixed(8).replace(/\.?0+$/, '');
+      // Show at least 6 decimal places for very small numbers
+      return numAmount.toFixed(6).replace(/\.?0+$/, '');
     }
     
-    // For normal numbers, show 2 decimal places
-    return numAmount.toFixed(2);
+    // If it's a large number with decimals, show 2 decimal places
+    if (numAmount > 1000) {
+      return numAmount.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+    
+    // For normal numbers, adjust decimal places based on size
+    if (numAmount > 100) return numAmount.toFixed(2);
+    if (numAmount > 10) return numAmount.toFixed(3);
+    if (numAmount > 1) return numAmount.toFixed(4);
+    
+    // For small but visible numbers
+    return numAmount.toFixed(5);
   };
 
   return (
