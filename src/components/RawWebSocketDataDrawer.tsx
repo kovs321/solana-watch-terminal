@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import WebSocketDebugPanel from "./WebSocketDebugPanel";
 import { Code } from "lucide-react";
