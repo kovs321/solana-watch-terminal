@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Trash2 } from 'lucide-react'; // Import the icon for delete functionality
 
 interface TrackedWallet {
   wallet_address: string;
