@@ -7,8 +7,9 @@ import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from '@/components/ui/button';
-import { Radio } from 'lucide-react';
+import { Radio, file-spreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useWalletContext } from '@/contexts/WalletContext';
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -46,6 +47,64 @@ function MonitoringButton() {
     </Button>;
 }
 
+function ExportWalletsCSVButton() {
+  const { wallets } = useWalletContext();
+
+  // Converts wallets array to CSV string
+  const walletsToCSV = () => {
+    // Header
+    const header = ['Name', 'Address'];
+    // Rows
+    const rows = wallets.map(w => [
+      // Escape double quotes and wrap
+      `"${(w.name ?? '').replace(/"/g, '""')}"`,
+      `"${(w.address ?? '').replace(/"/g, '""')}"`
+    ]);
+    const csv = [
+      header.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\r\n');
+    return csv;
+  };
+
+  const handleExport = () => {
+    const csv = walletsToCSV();
+    // Create blob and trigger download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+
+    // Create temporary link for download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'solana-wallets.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+
+    toast({
+      title: "Wallets exported",
+      description: `Exported ${wallets.length} wallets to CSV file.`,
+    });
+  };
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="ml-2 flex items-center gap-1 font-mono bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
+      onClick={handleExport}
+      title="Export all wallets as CSV file"
+      disabled={wallets.length === 0}
+    >
+      <file-spreadsheet size={14} />
+      Export as CSV
+    </Button>
+  );
+}
+
 function AutoMonitorTrigger() {
   const { startMonitoringAllWallets, monitoringActive } = useTransactionContext();
   useEffect(() => {
@@ -76,6 +135,7 @@ const Index = () => {
           <div className="flex justify-center gap-2 mb-4 items-center">
             <ConnectWallet />
             <MonitoringButton />
+            <ExportWalletsCSVButton />
           </div>
           <AutoMonitorTrigger />
 
