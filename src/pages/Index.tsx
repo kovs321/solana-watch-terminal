@@ -1,7 +1,6 @@
+
 import React from 'react';
 import Terminal from '@/components/Terminal';
-import WalletList from '@/components/WalletList';
-import AddWalletForm from '@/components/AddWalletForm';
 import ConnectWallet from '@/components/ConnectWallet';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 
@@ -25,7 +24,6 @@ const Index = () => {
           </div>
           
           <div className="space-y-4">
-            <WalletList />
             <AddWalletForm />
           </div>
         </div>
