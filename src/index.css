@@ -79,10 +79,10 @@
     50% { opacity: 0; }
   }
 
-  /* Retro terminal headers */
+  /* Retro terminal headers without glow */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-terminal-highlight;
-    text-shadow: 0 0 7px #00ff00, 0 0 1px #00ff00;
+    color: var(--terminal-green);
+    text-shadow: none;
   }
 }
 
