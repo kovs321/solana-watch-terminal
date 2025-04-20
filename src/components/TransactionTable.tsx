@@ -28,7 +28,20 @@ const TransactionTable = () => {
         return;
       }
 
-      setTransactions(data || []);
+      // Validate and convert transaction_type to ensure it matches our enum type
+      const validTransactions = (data || []).map(tx => {
+        // Make sure transaction_type is either 'BUY' or 'SELL'
+        const validType = tx.transaction_type === 'BUY' || tx.transaction_type === 'SELL' 
+          ? tx.transaction_type as 'BUY' | 'SELL'
+          : 'BUY'; // Default to 'BUY' if invalid
+        
+        return {
+          ...tx,
+          transaction_type: validType
+        } as Transaction;
+      });
+
+      setTransactions(validTransactions);
     };
 
     fetchTransactions();
