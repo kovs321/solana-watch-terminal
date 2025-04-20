@@ -81,17 +81,12 @@ const Index = () => {
             <MonitoringButton />
           </div>
 
-          <header className="mb-5 text-center">
-            {/* Removed the Solana Watch Terminal line */}
-            <p className="text-terminal-muted">$ tracking_solana_transactions --live</p>
-          </header>
-          
           <div className="grid grid-cols-1 gap-4 mb-6">
-            <Terminal />
-            <WalletList />
             <div className="flex justify-center">
               <AddWalletForm />
             </div>
+            <Terminal />
+            <WalletList />
           </div>
           
           <footer className="mt-8 text-center text-xs text-terminal-muted">
