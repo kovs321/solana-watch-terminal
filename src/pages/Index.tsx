@@ -6,7 +6,10 @@ import AddWalletForm from '@/components/AddWalletForm';
 import WalletList from '@/components/WalletList';
 import WalletTestPanel from '@/components/WalletTestPanel';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
-import { TransactionProvider } from '@/contexts/TransactionContext';
+import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
+import { Button } from '@/components/ui/button';
+import { Radio } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -22,6 +25,39 @@ const TERMINAL_ASCII = `
                                                                   
                                                                   
 `;
+
+function MonitoringButton() {
+  const { startMonitoringAllWallets, monitoringActive, wsStatus } = useTransactionContext();
+  const monitoredRooms = wsStatus?.subscribedRooms || [];
+  const activeWalletRooms = monitoredRooms.filter(room => room.startsWith('wallet:'));
+
+  const handleStartMonitoring = () => {
+    startMonitoringAllWallets();
+
+    toast({
+      title: 'Wallet Monitoring Started',
+      description: `Now monitoring wallets for transactions`,
+    });
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ml-4 font-mono flex items-center ${
+        monitoringActive ? 'border-terminal-success text-terminal-success' : ''
+      }`}
+      onClick={handleStartMonitoring}
+      disabled={monitoringActive}
+      title={monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring All Wallets'}
+    >
+      <Radio size={14} className={`mr-1 ${monitoringActive ? 'text-terminal-success' : ''}`} />
+      {monitoringActive
+        ? `Monitoring ${activeWalletRooms.length} Wallets`
+        : 'Start Monitoring'}
+    </Button>
+  );
+}
 
 const Index = () => {
   useInitialWallets();
@@ -40,12 +76,16 @@ const Index = () => {
             }}
           >{TERMINAL_ASCII}</pre>
           
+          {/* Wallet controls row */}
+          <div className="flex justify-center gap-2 mb-4 items-center">
+            <ConnectWallet />
+            <MonitoringButton />
+          </div>
+
           <header className="mb-5 text-center">
             {/* Removed the Solana Watch Terminal line */}
             <p className="text-terminal-muted">$ tracking_solana_transactions --live</p>
           </header>
-          
-          <ConnectWallet />
           
           <div className="grid grid-cols-1 gap-4 mb-6">
             <WalletTestPanel />
@@ -69,4 +109,3 @@ const Index = () => {
 };
 
 export default Index;
-
