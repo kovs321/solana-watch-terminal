@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -10,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Radio, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useWalletContext } from '@/contexts/WalletContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -48,17 +49,40 @@ function MonitoringButton() {
 }
 
 function ExportWalletsCSVButton() {
-  const { wallets } = useWalletContext();
+  const [trackedWallets, setTrackedWallets] = useState<{ wallet_address: string; name: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Converts wallets array to CSV string
+  useEffect(() => {
+    const fetchTrackedWallets = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('wallet_tracking')
+          .select('*');
+
+        if (error) throw error;
+        
+        const FAKE_WALLET_NAMES = ["Bob", "Charlie", "Alice"];
+        const realWallets = (data || []).filter(
+          wallet => !FAKE_WALLET_NAMES.includes(wallet.name)
+        );
+        
+        setTrackedWallets(realWallets);
+      } catch (error) {
+        console.error('Error fetching tracked wallets:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrackedWallets();
+  }, []);
+
   const walletsToCSV = () => {
-    // Header
-    const header = ['Name', 'Address'];
-    // Rows
-    const rows = wallets.map(w => [
-      // Escape double quotes and wrap
+    const header = ['Name', 'Wallet Address'];
+    const rows = trackedWallets.map(w => [
       `"${(w.name ?? '').replace(/"/g, '""')}"`,
-      `"${(w.address ?? '').replace(/"/g, '""')}"`
+      `"${(w.wallet_address ?? '').replace(/"/g, '""')}"`
     ]);
     const csv = [
       header.join(','),
@@ -69,14 +93,12 @@ function ExportWalletsCSVButton() {
 
   const handleExport = () => {
     const csv = walletsToCSV();
-    // Create blob and trigger download
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
 
-    // Create temporary link for download
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'solana-wallets.csv';
+    a.download = 'solana-tracked-wallets.csv';
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
@@ -86,7 +108,7 @@ function ExportWalletsCSVButton() {
 
     toast({
       title: "Wallets exported",
-      description: `Exported ${wallets.length} wallets to CSV file.`,
+      description: `Exported ${trackedWallets.length} tracked wallets to CSV file.`,
     });
   };
 
@@ -96,11 +118,11 @@ function ExportWalletsCSVButton() {
       variant="outline"
       className="ml-2 flex items-center gap-1 font-mono bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
       onClick={handleExport}
-      title="Export all wallets as CSV file"
-      disabled={wallets.length === 0}
+      title="Export all tracked wallets as CSV file"
+      disabled={trackedWallets.length === 0 || isLoading}
     >
       <FileSpreadsheet size={14} />
-      Export as CSV
+      {isLoading ? "Loading..." : `Export ${trackedWallets.length} Wallets`}
     </Button>
   );
 }
@@ -159,4 +181,3 @@ const Index = () => {
 };
 
 export default Index;
-
