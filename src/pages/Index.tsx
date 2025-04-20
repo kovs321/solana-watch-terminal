@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -122,7 +123,7 @@ function ExportWalletsCSVButton() {
       disabled={trackedWallets.length === 0 || isLoading}
     >
       <FileSpreadsheet size={14} />
-      {isLoading ? "Loading..." : `Export ${trackedWallets.length} Wallets`}
+      {isLoading ? "Loading..." : "Export Wallets"}
     </Button>
   );
 }
@@ -181,3 +182,4 @@ const Index = () => {
 };
 
 export default Index;
+
