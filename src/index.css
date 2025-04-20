@@ -5,113 +5,104 @@
 
 @layer base {
   :root {
-    /* Green terminal-like theme */
-    --background: 222.2 84% 4.9%;
-    --foreground: 120 100% 50%; /* Bright green */
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 120 100% 50%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 120 100% 50%;
+    /* Retro green terminal theme from screenshot */
+    --background: 153 67% 8%;       /* #083d28 */
+    --foreground: 151 94% 69%;      /* #16fa7e */
+    --card: 153 67% 8%;             /* #083d28 */
+    --card-foreground: 151 94% 69%; /* #16fa7e */
+    --popover: 153 67% 8%;          /* #083d28 */
+    --popover-foreground: 151 94% 69%; /* #16fa7e */
 
-    --primary: 120 100% 50%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 151 94% 69%;         /* #16fa7e */
+    --primary-foreground: 153 67% 8%;/* #083d28 */
 
-    --secondary: 120 100% 20%;
-    --secondary-foreground: 120 80% 40%;
+    --secondary: 153 42% 32%;       /* #129463 */
+    --secondary-foreground: 151 94% 69%;
 
-    --muted: 120 50% 24%;
-    --muted-foreground: 135 100% 50%;
+    --muted: 152 51% 19%;           /* #15573A */
+    --muted-foreground: 151 94% 69%; 
 
-    --accent: 111 39% 31%;
-    --accent-foreground: 120 100% 50%;
+    --accent: 153 42% 22%;          /* #085c3b */
+    --accent-foreground: 151 94% 69%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 4 82% 43%;        /* #d83c36 */
+    --destructive-foreground: 151 94% 69%;
 
-    --border: 110 40% 25%;
-    --input: 110 40% 25%;
-    --ring: 120 100% 30%;
+    --border: 151 94% 69%;         /* #16fa7e */
+    --input: 153 67% 8%;           /* #083d28 */
+    --ring: 151 94% 69%;           /* #16fa7e */
 
     --radius: 0.35rem;
-
-    --terminal-green: #00FF00;
-    --terminal-green-dim: #00c900;
-    --terminal-bg: #000;
   }
 
   body {
-    @apply bg-black text-[#00FF00] font-mono;
-    background-image: url('/lovable-uploads/c712aade-efe7-4555-a144-c82bab5b5a2f.png');
-    background-size: cover;
+    @apply bg-[hsl(153_67%_8%)] text-[hsl(151_94%_69%)] font-mono;
+    background: #000;
+    background-size: auto;
     background-position: center;
-    background-repeat: no-repeat;
-    /* Cozy overlay for terminal */
-    position: relative;
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: #000C 70%;
-    pointer-events: none;
-    z-index: 0;
+    background-repeat: repeat;
   }
 
   /* Terminal font */
   .font-mono {
-    font-family: "Courier New", Courier, monospace !important;
-    letter-spacing: 1px;
+    font-family: "JetBrains Mono", "Fira Mono", Menlo, "Courier New", Courier, monospace !important;
+    letter-spacing: 0.5px;
   }
 
-  /* Selection, cursor blink etc */
+  /* Selection and cursor */
   ::selection {
-    background: #00ff00;
+    background: #16fa7e;
     color: #000;
   }
   .cursor-blink::after {
     content: "|";
-    margin-left: 2px;
-    animation: blink 1s infinite;
-    color: var(--terminal-green);
+    margin-left: 1px;
+    animation: blink 1s steps(2, jump-none) infinite;
+    color: #16fa7e;
   }
   @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
   }
 
-  /* Retro terminal headers without glow */
+  /* Terminal headers */
   h1, h2, h3, h4, h5, h6 {
-    color: var(--terminal-green);
+    color: #16fa7e;
     text-shadow: none;
   }
 }
 
-/* Retro scrollbars */
+/* Clean retro scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #111;
+  background: #083d28;
 }
 ::-webkit-scrollbar-thumb {
-  background: #006400;
+  background: #129463;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #00ff00;
+  background: #16fa7e;
 }
 
-/* Terminal UI tweaks */
-.bg-terminal-background,
-.bg-black {
-  background: #000 !important;
-}
-
-/* Table border fixes for terminal */
+/* Flat terminal border tweaks for table etc */
 .table,
 .table tr,
 .table th,
 .table td {
-  border-color: #009900 !important;
+  border-color: #129463 !important;
+}
+
+/* Utility: sharp lines for "boxes" */
+.terminal-border {
+  border: 1.5px solid #16fa7e !important;
+}
+
+/* Buttons etc should have no glow or white background */
+.bg-terminal-background,
+.bg-black {
+  background: #031e13 !important; /* darker for panel base */
 }

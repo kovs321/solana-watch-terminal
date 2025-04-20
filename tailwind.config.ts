@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,13 +26,13 @@ export default {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         terminal: {
-          background: '#0C0C0C',
-          text: '#00FF00',
-          highlight: '#00FF00',
-          success: '#00FF00',
-          error: '#FF0000',
-          warning: '#FFFF00',
-          muted: '#006400',
+          background: '#031e13', // Panel backgrounds, even darker than base
+          text: '#16fa7e',
+          highlight: '#16fa7e',
+          success: '#16fa7e',
+          error: '#d83c36',     // retro red for errors
+          warning: '#ffe066',   // gentle yellow for warnings
+          muted: '#129463',     // green for borders and muted lines
         },
         primary: {
           DEFAULT: 'hsl(var(--primary))',
@@ -60,16 +61,6 @@ export default {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))'
         }
       },
       borderRadius: {
@@ -103,3 +94,4 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
