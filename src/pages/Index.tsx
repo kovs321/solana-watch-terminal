@@ -8,6 +8,7 @@ import { TransactionProvider, useTransactionContext } from '@/contexts/Transacti
 import { Button } from '@/components/ui/button';
 import { Radio } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
 |      \\|  \\  |  \\ /      \\ |      \\|       \\ |        \\|       \\ 
@@ -22,6 +23,7 @@ const TERMINAL_ASCII = `
                                                                   
                                                                   
 `;
+
 function MonitoringButton() {
   const {
     startMonitoringAllWallets,
@@ -42,26 +44,22 @@ function MonitoringButton() {
       {monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring'}
     </Button>;
 }
+
 const Index = () => {
   useInitialWallets();
   return <TransactionProvider>
       <div className="min-h-screen bg-terminal-background text-terminal-text font-mono relative">
         <div className="container mx-auto px-4 py-8 z-10 relative">
-          {/* ASCII Art header */}
           <pre aria-label="solana terminal ascii" className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1" style={{
-          // No text shadow for glow effect
           userSelect: 'none'
         }}>{TERMINAL_ASCII}</pre>
           <div className="flex justify-center mb-10">
             <span style={{
-            // Remove text shadow, keep flat neon color
-            userSelect: 'none'
-          }} className="text-center text-2xl sm:text-4xl font-bold text-terminal-highlight font-mono md:text-2xl">
-              crowdsourced insider information
+              userSelect: 'none'
+            }} className="text-center text-2xl sm:text-4xl font-bold text-terminal-highlight font-mono md:text-2xl">
             </span>
           </div>
           
-          {/* Wallet controls row */}
           <div className="flex justify-center gap-2 mb-4 items-center">
             <ConnectWallet />
             <MonitoringButton />
@@ -85,4 +83,5 @@ const Index = () => {
       </div>
     </TransactionProvider>;
 };
+
 export default Index;
