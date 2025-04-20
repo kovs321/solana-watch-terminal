@@ -45,9 +45,7 @@ const AddWalletForm: React.FC = () => {
         .insert([
           {
             wallet_address: address,
-            name: name,
-            transaction_type: 'WATCH', // Default type for new wallets
-            token_name: 'ALL' // Default to watching all tokens
+            name: name
           }
         ]);
 

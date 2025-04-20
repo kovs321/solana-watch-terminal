@@ -41,27 +41,15 @@ export type Database = {
       }
       wallet_tracking: {
         Row: {
-          created_at: string
-          id: string
           name: string
-          token_name: string
-          transaction_type: string
           wallet_address: string
         }
         Insert: {
-          created_at?: string
-          id?: string
           name: string
-          token_name: string
-          transaction_type: string
           wallet_address: string
         }
         Update: {
-          created_at?: string
-          id?: string
           name?: string
-          token_name?: string
-          transaction_type?: string
           wallet_address?: string
         }
         Relationships: []

@@ -5,12 +5,8 @@ import { toast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TrackedWallet {
-  id: string;
   wallet_address: string;
   name: string;
-  transaction_type: string;
-  token_name: string;
-  created_at: string;
 }
 
 const WalletList: React.FC = () => {
@@ -24,8 +20,7 @@ const WalletList: React.FC = () => {
       
       const { data, error } = await supabase
         .from('wallet_tracking')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (error) {
         console.error('Supabase error:', error);
@@ -74,21 +69,15 @@ const WalletList: React.FC = () => {
         </div>
       ) : (
         <div className="max-h-48 overflow-y-auto">
-          {wallets.map((wallet) => (
+          {wallets.map((wallet, index) => (
             <div 
-              key={wallet.id} 
+              key={index} 
               className="text-sm mb-2 py-1 px-2 rounded hover:bg-gray-800 flex justify-between items-center"
             >
               <div>
                 <div className="font-semibold text-terminal-highlight">{wallet.name}</div>
                 <div className="text-xs text-terminal-muted font-mono truncate max-w-[200px]">
                   {wallet.wallet_address}
-                </div>
-                <div className="text-xs mt-1">
-                  <span className={wallet.transaction_type === 'BUY' ? 'text-green-400' : 'text-red-400'}>
-                    {wallet.transaction_type}
-                  </span>
-                  <span className="text-terminal-muted ml-2">{wallet.token_name}</span>
                 </div>
               </div>
             </div>
