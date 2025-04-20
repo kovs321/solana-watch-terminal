@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -19,12 +18,9 @@ const Index = () => {
         
         <ConnectWallet />
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-          <div className="lg:col-span-3">
-            <Terminal />
-          </div>
-          
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 mb-6">
+          <Terminal />
+          <div className="flex justify-center">
             <AddWalletForm />
           </div>
         </div>
