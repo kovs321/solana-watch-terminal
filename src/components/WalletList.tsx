@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TrackedWallet {
   id: string;
@@ -53,6 +54,10 @@ const WalletList: React.FC = () => {
     return (
       <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4">
         <div className="text-terminal-muted italic text-sm">Loading wallets...</div>
+        <div className="space-y-2 mt-2">
+          <Skeleton className="h-12 w-full bg-gray-800" />
+          <Skeleton className="h-12 w-full bg-gray-800" />
+        </div>
       </div>
     );
   }

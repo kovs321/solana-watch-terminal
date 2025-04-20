@@ -3,6 +3,7 @@ import React from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
 import AddWalletForm from '@/components/AddWalletForm';
+import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
         
         <div className="grid grid-cols-1 gap-4 mb-6">
           <Terminal />
+          <WalletList />
           <div className="flex justify-center">
             <AddWalletForm />
           </div>
