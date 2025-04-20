@@ -42,7 +42,6 @@ class WebSocketService {
     }
 
     try {
-      // Use the correct query parameter name 'api_key' as specified
       const authenticatedUrl = `${this.wsUrl}?api_key=${this.apiKey}`;
       console.log(`Connecting to WebSocket server at ${authenticatedUrl}...`);
       
@@ -66,7 +65,6 @@ class WebSocketService {
       console.log('Subscribed Rooms:', Array.from(this.subscribedRooms));
       console.groupEnd();
       
-      // Enhanced heartbeat
       if (socket.readyState === WebSocket.OPEN) {
         try {
           const heartbeat = { 
@@ -93,7 +91,6 @@ class WebSocketService {
       if (type === "main") this.socket = null;
       if (type === "transaction") this.transactionSocket = null;
       
-      // Clear ping interval if it exists
       if (this.pingInterval) {
         clearInterval(this.pingInterval);
         this.pingInterval = null;
@@ -111,13 +108,11 @@ class WebSocketService {
         console.log(`[WebSocket ${type}] Raw Message:`, event.data);
         const message = JSON.parse(event.data);
         
-        // Log all incoming messages for debugging
         console.group(`[WebSocket ${type}] Parsed Message`);
         console.log('Type:', message.type);
         console.log('Full Message:', message);
         console.groupEnd();
         
-        // Handle system messages
         if (message.type === "system") {
           console.log(`System message: ${message.event}`, message);
           if (message.event === "subscribed") {
@@ -127,7 +122,6 @@ class WebSocketService {
           return;
         }
         
-        // Handle heartbeat messages
         if (message.type === "ping") {
           console.log(`[WebSocket ${type}] Received ping, sending pong`);
           socket.send(JSON.stringify({ 
@@ -143,11 +137,9 @@ class WebSocketService {
           return;
         }
         
-        // Handle transaction messages
         if (message.type === "message") {
           console.log(`Received message for room ${message.room}:`, message.data);
           
-          // Deduplicate transactions
           if (message.data?.tx && this.transactions.has(message.data.tx)) {
             console.log(`Skipping duplicate transaction: ${message.data.tx}`);
             return;
@@ -158,19 +150,16 @@ class WebSocketService {
             this.transactions.add(message.data.tx);
           }
           
-          // Handle price updates
           if (message.room.includes('price:')) {
             this.emitter.emit(`price-by-token:${message.data.token}`, message.data);
           }
           
-          // Handle wallet transactions
           if (message.room.startsWith('wallet:')) {
             console.log(`Emitting wallet transaction for ${message.room}:`, message.data);
             this.emitter.emit(message.room, message.data);
             this.emitter.emit('all-transactions', message.data);
           }
           
-          // Always emit for the specific room
           this.emitter.emit(message.room, message.data);
         }
       } catch (error) {
@@ -190,7 +179,6 @@ class WebSocketService {
       this.transactionSocket = null;
     }
     
-    // Clear ping interval if it exists
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
@@ -217,12 +205,10 @@ class WebSocketService {
   }
 
   startPingInterval() {
-    // Clear any existing ping interval
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
     }
     
-    // Send a ping every 30 seconds to keep the connection alive
     this.pingInterval = setInterval(() => {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         try {
@@ -249,7 +235,6 @@ class WebSocketService {
   joinRoom(room: string) {
     console.log(`[WebSocket] Joining room: ${room}`);
     
-    // Always use transaction socket for wallet-related rooms
     const socket = room.startsWith("wallet:") || room.includes("transaction")
       ? this.transactionSocket
       : this.socket;
@@ -320,7 +305,6 @@ class WebSocketService {
       this.transactionSocket.readyState === WebSocket.OPEN
     ) {
       for (const room of this.subscribedRooms) {
-        // Always use transaction socket for wallet room subscriptions during resubscribe
         const socket = room.startsWith("wallet:") || room.includes("transaction")
           ? this.transactionSocket
           : this.socket;
@@ -330,7 +314,6 @@ class WebSocketService {
         socket.send(message);
       }
       
-      // Start the ping interval after resubscribing
       this.startPingInterval();
     } else {
       console.warn("Cannot resubscribe to rooms, sockets not ready");
