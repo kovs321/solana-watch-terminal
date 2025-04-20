@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
-// Define the type for a tracked wallet based on the table structure
 interface TrackedWallet {
   id: string;
   wallet_address: string;
   name: string;
+  transaction_type: string;
+  token_name: string;
   created_at: string;
 }
 
@@ -15,14 +16,13 @@ const WalletList: React.FC = () => {
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch tracked wallets from Supabase
   const fetchTrackedWallets = async () => {
     try {
       setIsLoading(true);
       console.log('Fetching tracked wallets...');
       
       const { data, error } = await supabase
-        .from('tracked_wallets')
+        .from('wallet_tracking')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -45,7 +45,6 @@ const WalletList: React.FC = () => {
     }
   };
 
-  // Fetch wallets on component mount
   useEffect(() => {
     fetchTrackedWallets();
   }, []);
@@ -79,6 +78,12 @@ const WalletList: React.FC = () => {
                 <div className="font-semibold text-terminal-highlight">{wallet.name}</div>
                 <div className="text-xs text-terminal-muted font-mono truncate max-w-[200px]">
                   {wallet.wallet_address}
+                </div>
+                <div className="text-xs mt-1">
+                  <span className={wallet.transaction_type === 'BUY' ? 'text-green-400' : 'text-red-400'}>
+                    {wallet.transaction_type}
+                  </span>
+                  <span className="text-terminal-muted ml-2">{wallet.token_name}</span>
                 </div>
               </div>
             </div>
