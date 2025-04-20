@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
 import AddWalletForm from '@/components/AddWalletForm';
@@ -9,9 +9,7 @@ import { TransactionProvider, useTransactionContext } from '@/contexts/Transacti
 import { Button } from '@/components/ui/button';
 import { Radio, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useWalletContext } from '@/contexts/WalletContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useState } from 'react';
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -43,9 +41,9 @@ function MonitoringButton() {
       description: `Now monitoring wallets for transactions`
     });
   };
-  return <Button variant="outline" size="sm" className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ml-4 font-mono flex items-center ${monitoringActive ? 'border-terminal-success text-terminal-success' : ''}`} onClick={handleStartMonitoring} disabled={monitoringActive} title={monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring All Wallets'}>
+  return <Button variant="outline" size="sm" className={`bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs ml-4 font-mono flex items-center ${monitoringActive ? 'border-terminal-success text-terminal-success' : ''}`} onClick={handleStartMonitoring} disabled={monitoringActive} title={monitoringActive ? `Monitoring Wallets` : 'Start Monitoring All Wallets'}>
       <Radio size={14} className={`mr-1 ${monitoringActive ? 'text-terminal-success' : ''}`} />
-      {monitoringActive ? `Monitoring ${activeWalletRooms.length} Wallets` : 'Start Monitoring'}
+      {monitoringActive ? `Monitoring Wallets` : 'Start Monitoring'}
     </Button>;
 }
 
