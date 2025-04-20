@@ -6,6 +6,8 @@ import { SolanaTransaction } from "@/types/transactions";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import CopyTooltip from "./CopyTooltip";
 
+const SOL_ADDRESS_TO_EXCLUDE_COPY = "So11111111111111111111111111111111111111112";
+
 const TransactionTable = () => {
   const { transactions, isConnected } = useTransactionContext();
   const [showNoData, setShowNoData] = useState(false);
@@ -52,6 +54,12 @@ const TransactionTable = () => {
         <span className="mr-0.5">{formatTokenSymbol(symbol, name)}</span>
       </>
     );
+
+    // Disable copy for the specific SOL token address
+    if (address && address === SOL_ADDRESS_TO_EXCLUDE_COPY) {
+      return display;
+    }
+
     return address ? (
       <CopyTooltip
         value={address}
@@ -159,3 +167,4 @@ const TransactionTable = () => {
 };
 
 export default TransactionTable;
+
