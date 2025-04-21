@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
 import AddWalletForm from '@/components/AddWalletForm';
@@ -7,9 +8,10 @@ import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from '@/components/ui/button';
-import { Radio, FileSpreadsheet } from 'lucide-react';
+import { Radio, FileSpreadsheet, TrendingUp } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -140,6 +142,8 @@ function AutoMonitorTrigger() {
 
 const Index = () => {
   useInitialWallets();
+  const navigate = useNavigate();
+  
   return <TransactionProvider>
       <div className="min-h-screen bg-terminal-background text-terminal-text font-mono relative">
         <div className="container mx-auto px-4 py-8 z-10 relative">
@@ -157,8 +161,29 @@ const Index = () => {
             <ConnectWallet />
             <MonitoringButton />
             <ExportWalletsCSVButton />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2 flex items-center gap-1 font-mono bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
+              onClick={() => navigate('/leaderboard')}
+              title="View wallet leaderboard"
+            >
+              <TrendingUp size={14} />
+              Leaderboard
+            </Button>
           </div>
           <AutoMonitorTrigger />
+
+          <Tabs defaultValue="terminal" className="w-full mb-6">
+            <TabsList className="grid grid-cols-2 bg-terminal-background w-64 mx-auto">
+              <TabsTrigger value="terminal" className="data-[state=active]:bg-highlight-blue/20 text-highlight-blue">
+                Terminal
+              </TabsTrigger>
+              <TabsTrigger value="leaderboard" className="data-[state=active]:bg-highlight-blue/20 text-highlight-blue" onClick={() => navigate('/leaderboard')}>
+                Leaderboard
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <div className="grid grid-cols-1 gap-4 mb-6">
             <div className="flex justify-center">
@@ -180,4 +205,3 @@ const Index = () => {
 };
 
 export default Index;
-
