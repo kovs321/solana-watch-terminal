@@ -5,12 +5,24 @@ import { useTransactionContext } from "@/contexts/TransactionContext";
 import { SolanaTransaction } from "@/types/transactions";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import CopyTooltip from "./CopyTooltip";
+import WalletPnlDialog from "./WalletPnlDialog";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 const SOL_ADDRESS_TO_EXCLUDE_COPY = "So11111111111111111111111111111111111111112";
 
 const TransactionTable = () => {
   const { transactions, isConnected } = useTransactionContext();
   const [showNoData, setShowNoData] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<{wallet_address: string, name: string} | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pnlLoading, setPnlLoading] = useState(false);
+  const [pnlData, setPnlData] = useState<any>(null);
+  const [pnlError, setPnlError] = useState<string | null>(null);
+
+  // API base URL and key for PnL data
+  const API_URL = 'https://data.solanatracker.io/pnl';
+  const API_KEY = '7e869836-9708-43e2-bb2e-1c11959d306a';
 
   // Show no data message after a delay (to avoid flickering)
   useEffect(() => {
@@ -19,6 +31,41 @@ const TransactionTable = () => {
     }, 2000);
     return () => clearTimeout(timer);
   }, [transactions.length]);
+
+  // Handle wallet click to fetch PnL data
+  const handleWalletClick = async (walletAddress: string, walletName?: string) => {
+    if (!walletAddress) return;
+    
+    const displayName = walletName || walletAddress.slice(0, 4) + "..." + walletAddress.slice(-4);
+    
+    setSelectedWallet({
+      wallet_address: walletAddress,
+      name: displayName
+    });
+    setDialogOpen(true);
+    setPnlData(null);
+    setPnlError(null);
+    setPnlLoading(true);
+
+    try {
+      const url = `${API_URL}/${encodeURIComponent(walletAddress)}`;
+      const resp = await fetch(url, {
+        headers: {
+          'x-api-key': API_KEY
+        }
+      });
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch PnL: ${resp.statusText}`);
+      }
+      const respData = await resp.json();
+      setPnlData(respData);
+    } catch (err: any) {
+      console.error(err);
+      setPnlError(err.message || 'Failed to fetch wallet PnL');
+    } finally {
+      setPnlLoading(false);
+    }
+  };
 
   // Format token amount to display non-zero values properly
   const formatTokenAmount = (amount: string | number | undefined) => {
@@ -110,9 +157,19 @@ const TransactionTable = () => {
                 </TableCell>
                 <TableCell className="text-terminal-text font-mono text-xs">
                   {tx.walletName ? (
-                    <span>{tx.walletName}</span>
+                    <button 
+                      onClick={() => handleWalletClick(tx.walletAddress, tx.walletName)}
+                      className="hover:text-highlight-blue hover:underline cursor-pointer"
+                    >
+                      {tx.walletName}
+                    </button>
                   ) : tx.walletAddress ? (
-                    <span>{tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}</span>
+                    <button
+                      onClick={() => handleWalletClick(tx.walletAddress)}
+                      className="hover:text-highlight-blue hover:underline cursor-pointer"
+                    >
+                      {tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}
+                    </button>
                   ) : (
                     "Unknown"
                   )}
@@ -154,6 +211,24 @@ const TransactionTable = () => {
           ) : null}
         </TableBody>
       </Table>
+
+      {/* PnL Dialog for wallet details */}
+      <WalletPnlDialog
+        open={dialogOpen}
+        onOpenChange={open => {
+          setDialogOpen(open);
+          if (!open) {
+            setSelectedWallet(null);
+            setPnlError(null);
+            setPnlData(null);
+          }
+        }}
+        walletName={selectedWallet?.name || ""}
+        walletAddress={selectedWallet?.wallet_address || ""}
+        pnlData={pnlData}
+        loading={pnlLoading}
+        error={pnlError}
+      />
     </div>
   );
 };
