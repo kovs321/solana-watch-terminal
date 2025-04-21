@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -9,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Radio, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { RawWebSocketProvider } from "@/contexts/RawWebSocketContext";
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -140,47 +140,44 @@ function AutoMonitorTrigger() {
 
 const Index = () => {
   useInitialWallets();
-  return (
-    <RawWebSocketProvider>
-      <TransactionProvider>
-        <div className="min-h-screen bg-terminal-background text-terminal-text font-mono relative">
-          <div className="container mx-auto px-4 py-8 z-10 relative">
-            <pre aria-label="solana terminal ascii" className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1" style={{
+  return <TransactionProvider>
+      <div className="min-h-screen bg-terminal-background text-terminal-text font-mono relative">
+        <div className="container mx-auto px-4 py-8 z-10 relative">
+          <pre aria-label="solana terminal ascii" className="text-[10px] sm:text-xs md:text-sm leading-tight font-mono text-center text-terminal-highlight mb-1" style={{
+          userSelect: 'none'
+        }}>{TERMINAL_ASCII}</pre>
+          <div className="flex justify-center mb-10">
+            <span style={{
               userSelect: 'none'
-            }}>{TERMINAL_ASCII}</pre>
-            <div className="flex justify-center mb-10">
-              <span style={{
-                userSelect: 'none'
-              }} className="text-center text-2xl sm:text-4xl font-bold text-terminal-highlight font-mono md:text-2xl">
-              </span>
-            </div>
-            
-            <div className="flex justify-center gap-2 mb-4 items-center">
-              <ConnectWallet />
-              <MonitoringButton />
-              <ExportWalletsCSVButton />
-            </div>
-            <AutoMonitorTrigger />
-
-            <div className="grid grid-cols-1 gap-4 mb-6">
-              <div className="flex justify-center">
-                <AddWalletForm />
-              </div>
-              <Terminal />
-              <WalletList />
-            </div>
-            
-            <footer className="mt-8 text-center text-xs text-terminal-muted">
-              <p>Solana Watch Terminal &copy; {new Date().getFullYear()}</p>
-              <p className="mt-1">
-                $ system_status --monitoring
-              </p>
-            </footer>
+            }} className="text-center text-2xl sm:text-4xl font-bold text-terminal-highlight font-mono md:text-2xl">
+            </span>
           </div>
+          
+          <div className="flex justify-center gap-2 mb-4 items-center">
+            <ConnectWallet />
+            <MonitoringButton />
+            <ExportWalletsCSVButton />
+          </div>
+          <AutoMonitorTrigger />
+
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            <div className="flex justify-center">
+              <AddWalletForm />
+            </div>
+            <Terminal />
+            <WalletList />
+          </div>
+          
+          <footer className="mt-8 text-center text-xs text-terminal-muted">
+            <p>Solana Watch Terminal &copy; {new Date().getFullYear()}</p>
+            <p className="mt-1">
+              $ system_status --monitoring
+            </p>
+          </footer>
         </div>
-      </TransactionProvider>
-    </RawWebSocketProvider>
-  );
+      </div>
+    </TransactionProvider>;
 };
 
 export default Index;
+

@@ -1,9 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardHeader, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Trash } from 'lucide-react';
-import { useRawWebSocketContext } from '@/contexts/RawWebSocketContext';
 
 interface WebSocketMessage {
   timestamp: string;
@@ -13,8 +13,6 @@ interface WebSocketMessage {
 }
 
 const WebSocketDebugPanel = () => {
-  const [tab, setTab] = useState<"traffic" | "raw">("raw");
-  const { rawMessages, clearRawMessages } = useRawWebSocketContext();
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   
   useEffect(() => {
@@ -115,26 +113,12 @@ const WebSocketDebugPanel = () => {
   return (
     <Card className="bg-black border-terminal-muted">
       <CardHeader className="py-2 flex flex-row items-center justify-between">
-        <div className="text-xs font-mono text-terminal-muted flex gap-2 items-center">
-          <button
-            className={`px-2 py-1 rounded ${tab === "raw" ? "bg-terminal-highlight text-black" : "hover:bg-terminal-muted/20"}`}
-            onClick={() => setTab("raw")}
-          >
-            Trade Events
-          </button>
-          <button
-            className={`px-2 py-1 rounded ${tab === "traffic" ? "bg-terminal-highlight text-black" : "hover:bg-terminal-muted/20"}`}
-            onClick={() => setTab("traffic")}
-          >
-            All Traffic
-          </button>
-        </div>
+        <div className="text-xs font-mono text-terminal-muted">WebSocket Debug Panel</div>
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={tab === "raw" ? clearRawMessages : clearMessages}
+          onClick={clearMessages}
           className="h-6 w-6 p-0 text-terminal-muted hover:text-terminal-error"
-          title="Clear panel"
         >
           <Trash size={12} />
         </Button>
@@ -142,41 +126,21 @@ const WebSocketDebugPanel = () => {
       <CardContent className="p-0">
         <ScrollArea className="h-[200px] w-full">
           <div className="p-2 space-y-2">
-            {tab === "raw" && (
-              rawMessages && rawMessages.length > 0 ? (
-                rawMessages.map((msg, index) => (
-                  <div key={index} className="text-xs font-mono">
-                    <div className="text-terminal-highlight whitespace-nowrap mb-1">
-                      {new Date(msg.__rawReceived || Date.now()).toLocaleTimeString()} - Trade Event
-                    </div>
-                    <pre className="text-terminal-text overflow-x-auto p-1 bg-black/30 rounded max-h-36">
-                      {JSON.stringify({ ...msg, __rawReceived: undefined }, null, 2)}
-                    </pre>
+            {messages.length > 0 ? (
+              messages.map((msg, index) => (
+                <div key={index} className="text-xs font-mono">
+                  <div className={`${msg.direction === 'outgoing' ? 'text-terminal-highlight' : 'text-terminal-muted'}`}>
+                    {msg.timestamp} - {msg.direction} {msg.type}
                   </div>
-                ))
-              ) : (
-                <div className="text-center text-terminal-muted py-4">
-                  No trade events captured yet
+                  <pre className="text-terminal-text overflow-x-auto p-1 bg-black/30 rounded">
+                    {JSON.stringify(msg.data, null, 2)}
+                  </pre>
                 </div>
-              )
-            )}
-            {tab === "traffic" && (
-              messages.length > 0 ? (
-                messages.map((msg, index) => (
-                  <div key={index} className="text-xs font-mono">
-                    <div className={`${msg.direction === 'outgoing' ? 'text-terminal-highlight' : 'text-terminal-muted'}`}>
-                      {msg.timestamp} - {msg.direction} {msg.type}
-                    </div>
-                    <pre className="text-terminal-text overflow-x-auto p-1 bg-black/30 rounded">
-                      {JSON.stringify(msg.data, null, 2)}
-                    </pre>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-terminal-muted py-4">
-                  No WebSocket messages captured yet
-                </div>
-              )
+              ))
+            ) : (
+              <div className="text-center text-terminal-muted py-4">
+                No WebSocket messages captured yet
+              </div>
             )}
           </div>
         </ScrollArea>
