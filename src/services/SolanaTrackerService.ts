@@ -1,5 +1,5 @@
-
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const BASE_URL = 'https://data.solanatracker.io';
 const WS_URL = 'wss://datastream.solanatracker.io/6332a381-1d02-45e9-b9d1-fa797b304a40';
@@ -28,11 +28,10 @@ export interface TradeInfo {
   volume: number;
   type: 'buy' | 'sell';
   wallet: string;
-  walletName?: string; // Added this optional property
+  walletName?: string;
   time: number;
   program: string;
   token: TradeTokenInfo;
-  // These are fields we might get from historical data
   from?: {
     address: string;
     amount: number;
@@ -78,28 +77,18 @@ export interface WalletTradeResponse {
 export const getWalletTrades = async (walletAddress: string, cursor?: number) => {
   try {
     console.log(`Fetching trades for wallet: ${walletAddress}`);
-    const url = new URL(`/wallet/${walletAddress}/trades`, BASE_URL);
-    if (cursor) {
-      url.searchParams.append('cursor', cursor.toString());
-    }
     
-    console.log(`API request URL: ${url.toString()}`);
-    
-    const response = await fetch(url.toString(), {
-      headers: {
-        'x-api-key': API_KEY,
-        'Content-Type': 'application/json',
-      },
+    const { data, error } = await supabase.functions.invoke('solana-tracker', {
+      body: { walletAddress, cursor }
     });
-    
-    if (!response.ok) {
-      console.error(`API request failed with status ${response.status}`);
-      throw new Error(`API request failed with status ${response.status}`);
+
+    if (error) {
+      console.error('Error fetching wallet trades:', error);
+      throw error;
     }
-    
-    const data = await response.json();
+
     console.log(`Received response for ${walletAddress}:`, data);
-    return data as WalletTradeResponse;
+    return data;
   } catch (error) {
     console.error('Error fetching wallet trades:', error);
     toast({
