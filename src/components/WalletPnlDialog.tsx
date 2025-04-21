@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import CopyTooltip from "./CopyTooltip";
 
 interface TokenPnl {
   holding: number;
@@ -58,7 +59,21 @@ export default function WalletPnlDialog({
             <span className="text-highlight-blue">
               {walletName}
             </span>
-            <span className="ml-2 text-xs block text-highlight-blue font-mono truncate">{walletAddress}</span>
+            <span className="ml-2 text-xs block text-highlight-blue font-mono truncate flex items-center">
+              {/* Wallet address with copy option only in dialog */}
+              <CopyTooltip
+                value={walletAddress}
+                display={
+                  <>
+                    <span>{walletAddress}</span>
+                    <span style={{ color: "#526FFF", marginLeft: 4, display: "inline-flex", alignItems: "center" }}>
+                      {/* The Copy icon will inherit this color in the CopyTooltip */}
+                    </span>
+                  </>
+                }
+                tooltipLabel="Copy wallet address"
+              />
+            </span>
           </DialogTitle>
         </DialogHeader>
         {loading ? (
@@ -95,7 +110,12 @@ export default function WalletPnlDialog({
                   <tbody>
                     {Object.entries(pnlData.tokens).map(([tokenAddress, t]) => (
                       <tr key={tokenAddress}>
-                        <td className="pr-2 text-highlight-blue">{tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)}</td>
+                        <td className="pr-2 text-highlight-blue">
+                          {/* Accent color for token address */}
+                          <span style={{ color: "#526FFF" }}>
+                            {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)}
+                          </span>
+                        </td>
                         <td className="text-right px-1">{t.holding.toFixed(2)}</td>
                         <td className="text-right px-1">{t.realized.toFixed(2)}</td>
                         <td className="text-right px-1">{t.unrealized.toFixed(2)}</td>

@@ -37,8 +37,15 @@ const CopyTooltip: React.FC<CopyTooltipProps> = ({ value, display, tooltipLabel 
             onMouseEnter={() => setTooltipOpen(false)}
             title={tooltipLabel || value}
           >
+            {/* Here, try to extract text and add the copy icon with optional accent color */}
             {display}
-            <Copy size={13} className="ml-1 text-terminal-muted opacity-70 group-hover:text-terminal-highlight" />
+            <Copy
+              size={13}
+              className="ml-1 text-terminal-muted opacity-70 group-hover:text-terminal-highlight"
+              style={{
+                color: "#526FFF",
+              }}
+            />
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" align="center" className="z-50">
@@ -50,4 +57,3 @@ const CopyTooltip: React.FC<CopyTooltipProps> = ({ value, display, tooltipLabel 
 };
 
 export default CopyTooltip;
-
