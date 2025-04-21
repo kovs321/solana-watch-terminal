@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
+// Securely retrieve environment variables
 const SOLANA_TRACKER_API_KEY = Deno.env.get('SOLANA_TRACKER_API_KEY')
 const SOLANA_TRACKER_WS_URL = Deno.env.get('SOLANA_TRACKER_WS_URL')
 
@@ -20,8 +21,6 @@ serve(async (req) => {
     
     // If request is just to get WebSocket URL
     if (body.getWsUrl) {
-      // Instead of returning the URL with the API key, generate a proxy URL for the edge function
-      // that will handle the WebSocket connection
       const reqUrl = new URL(req.url);
       const proxyWsUrl = `wss://${reqUrl.hostname}/functions/v1/solana-tracker`;
       
@@ -30,7 +29,7 @@ serve(async (req) => {
       })
     }
 
-    // Handle wallet trades API
+    // Wallet trades API logic
     const { walletAddress, cursor } = body
     
     if (walletAddress && !body.wsProxy) {
@@ -56,30 +55,27 @@ serve(async (req) => {
       })
     }
 
-    // WebSocket connection upgrade handling - this part will handle the actual WebSocket connection
+    // WebSocket connection upgrade handling
     const upgradeHeader = req.headers.get('upgrade') || ''
     if (upgradeHeader.toLowerCase() === 'websocket') {
-      // Create WebSocket connection to SolanaTracker with API key
-      const actualWsUrl = `${SOLANA_TRACKER_WS_URL}?api_key=${SOLANA_TRACKER_API_KEY}`;
-      
+      // Create secure WebSocket connection without exposing API key in URL
       const { socket, response } = Deno.upgradeWebSocket(req);
-      const targetSocket = new WebSocket(actualWsUrl);
+      const targetSocket = new WebSocket(SOLANA_TRACKER_WS_URL!);
       
-      // Forward messages from client to target
+      // Implement secure socket message forwarding
       socket.onmessage = (event) => {
         if (targetSocket.readyState === WebSocket.OPEN) {
           targetSocket.send(event.data);
         }
       };
       
-      // Forward messages from target to client
       targetSocket.onmessage = (event) => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(event.data);
         }
       };
       
-      // Handle close events
+      // Handle close and error events
       socket.onclose = () => {
         if (targetSocket.readyState === WebSocket.OPEN) {
           targetSocket.close();
@@ -92,7 +88,6 @@ serve(async (req) => {
         }
       };
       
-      // Handle error events
       socket.onerror = (error) => {
         console.error('Client socket error:', error);
         if (targetSocket.readyState === WebSocket.OPEN) {
