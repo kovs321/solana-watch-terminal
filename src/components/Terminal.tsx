@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Terminal as TerminalIcon, RefreshCw } from 'lucide-react';
 import TransactionTable from './TransactionTable';
 import { useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from './ui/button';
@@ -13,15 +13,14 @@ const Terminal: React.FC = () => {
     transactions, 
     clearTransactions, 
     isConnected, 
-    wsStatus,
   } = useTransactionContext();
 
   const handleScroll = () => {
     if (!terminalRef.current) return;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
     const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 50;
-    
+
     setIsAutoScrollEnabled(isScrolledToBottom);
   };
 
@@ -44,7 +43,9 @@ const Terminal: React.FC = () => {
       <div className="flex items-center justify-between px-4 py-2 bg-black border-b border-terminal-muted">
         <div className="flex items-center">
           <TerminalIcon size={18} className="mr-2 text-terminal-text" />
-          <div className="text-sm font-mono font-semibold text-terminal-text">Solana Wallet Tracker</div>
+          <div className="text-sm font-mono font-semibold" style={{ color: '#526FFF' }}>
+            Solana Wallet Tracker
+          </div>
         </div>
         
         <div className="flex items-center space-x-2">
