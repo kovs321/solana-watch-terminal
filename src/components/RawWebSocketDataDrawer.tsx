@@ -13,10 +13,10 @@ const RawWebSocketDataDrawer: React.FC<{ open: boolean; onOpenChange: (open: boo
       <DrawerContent className="bg-black border-terminal-muted max-w-xl mx-auto rounded-lg">
         <DrawerHeader>
           <DrawerTitle className="flex items-center gap-2 text-terminal-highlight font-mono">
-            <Code size={18} /> Raw WebSocket Traffic
+            <Code size={18} /> Trade Transaction Data
           </DrawerTitle>
           <div className="text-xs text-terminal-muted mt-1">
-            Live log of the latest raw messages from the Solana Tracker WebSocket API below.
+            Live log of raw transaction data from the Solana Tracker WebSocket API.
           </div>
         </DrawerHeader>
         <div className="overflow-y-auto max-h-[60vh] p-2 pr-4">

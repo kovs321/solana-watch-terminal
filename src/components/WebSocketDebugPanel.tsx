@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardHeader, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Trash } from 'lucide-react';
+import { Trash, Filter } from 'lucide-react';
 
 interface WebSocketMessage {
   timestamp: string;
@@ -14,6 +14,7 @@ interface WebSocketMessage {
 
 const WebSocketDebugPanel = () => {
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
+  const [showOnlyTransactions, setShowOnlyTransactions] = useState(true);
   
   useEffect(() => {
     // Function to handle incoming messages
@@ -21,12 +22,16 @@ const WebSocketDebugPanel = () => {
       const now = new Date().toISOString();
       try {
         const data = JSON.parse(event.data);
-        setMessages(prev => [{
+        
+        // Create the message object
+        const message: WebSocketMessage = {
           timestamp: now,
           type: data.type || 'unknown',
           direction: 'incoming' as const,
           data: data
-        }, ...prev].slice(0, 100)); // Keep last 100 messages
+        };
+        
+        setMessages(prev => [message, ...prev].slice(0, 100)); // Keep last 100 messages
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
         // Still log raw messages that can't be parsed
@@ -46,12 +51,16 @@ const WebSocketDebugPanel = () => {
       if (typeof data === 'string') {
         try {
           const parsedData = JSON.parse(data);
-          setMessages(prev => [{
+          
+          // Create the message object
+          const message: WebSocketMessage = {
             timestamp: now,
             type: parsedData.type || 'unknown',
             direction: 'outgoing' as const,
             data: parsedData
-          }, ...prev].slice(0, 100));
+          };
+          
+          setMessages(prev => [message, ...prev].slice(0, 100));
         } catch (error) {
           console.error('Error parsing outgoing WebSocket message:', error);
           // Log raw outgoing messages that can't be parsed
@@ -110,24 +119,64 @@ const WebSocketDebugPanel = () => {
     setMessages([]);
   };
 
+  // Helper to determine if a message is transaction related
+  const isTransactionRelated = (message: WebSocketMessage): boolean => {
+    const { data, type } = message;
+    
+    // Check if it's a system message (ping/pong)
+    if (type === 'ping' || type === 'pong' || type === 'system' || type === 'join') {
+      return false;
+    }
+    
+    // Check for transaction-related fields
+    if (data.tx || 
+        data.type === 'buy' || 
+        data.type === 'sell' || 
+        data.wallet || 
+        data.from || 
+        data.to ||
+        (data.data && (data.data.tx || data.data.wallet || data.room?.startsWith('wallet:')))
+    ) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Filter messages based on toggle state
+  const filteredMessages = showOnlyTransactions 
+    ? messages.filter(isTransactionRelated)
+    : messages;
+
   return (
     <Card className="bg-black border-terminal-muted">
       <CardHeader className="py-2 flex flex-row items-center justify-between">
         <div className="text-xs font-mono text-terminal-muted">WebSocket Debug Panel</div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={clearMessages}
-          className="h-6 w-6 p-0 text-terminal-muted hover:text-terminal-error"
-        >
-          <Trash size={12} />
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setShowOnlyTransactions(!showOnlyTransactions)}
+            className={`h-6 p-1 text-xs ${showOnlyTransactions ? 'text-terminal-highlight' : 'text-terminal-muted'}`}
+          >
+            <Filter size={12} className="mr-1" />
+            {showOnlyTransactions ? "Showing Trades Only" : "Show All"}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={clearMessages}
+            className="h-6 w-6 p-0 text-terminal-muted hover:text-terminal-error"
+          >
+            <Trash size={12} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[200px] w-full">
           <div className="p-2 space-y-2">
-            {messages.length > 0 ? (
-              messages.map((msg, index) => (
+            {filteredMessages.length > 0 ? (
+              filteredMessages.map((msg, index) => (
                 <div key={index} className="text-xs font-mono">
                   <div className={`${msg.direction === 'outgoing' ? 'text-terminal-highlight' : 'text-terminal-muted'}`}>
                     {msg.timestamp} - {msg.direction} {msg.type}
@@ -139,7 +188,9 @@ const WebSocketDebugPanel = () => {
               ))
             ) : (
               <div className="text-center text-terminal-muted py-4">
-                No WebSocket messages captured yet
+                {showOnlyTransactions 
+                  ? "No trade-related WebSocket messages captured yet" 
+                  : "No WebSocket messages captured yet"}
               </div>
             )}
           </div>
