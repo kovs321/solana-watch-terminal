@@ -110,17 +110,9 @@ const TransactionTable = () => {
                 </TableCell>
                 <TableCell className="text-terminal-text font-mono text-xs">
                   {tx.walletName ? (
-                    <CopyTooltip
-                      value={tx.walletAddress}
-                      display={tx.walletName}
-                      tooltipLabel="Copy wallet address"
-                    />
+                    <span>{tx.walletName}</span>
                   ) : tx.walletAddress ? (
-                    <CopyTooltip
-                      value={tx.walletAddress}
-                      display={tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}
-                      tooltipLabel="Copy wallet address"
-                    />
+                    <span>{tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}</span>
                   ) : (
                     "Unknown"
                   )}
@@ -167,4 +159,3 @@ const TransactionTable = () => {
 };
 
 export default TransactionTable;
-
