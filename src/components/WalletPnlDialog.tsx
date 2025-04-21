@@ -50,17 +50,29 @@ export default function WalletPnlDialog({
   loading,
   error,
 }: WalletPnlDialogProps) {
+  // simple click handler to copy walletAddress to clipboard, no hover, no tooltip
+  const handleCopyWalletAddress = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(walletAddress);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-terminal-background border-highlight-blue">
         <DialogHeader>
           <DialogTitle>
-            <span className="text-highlight-blue">
-              {walletName}
-            </span>
+            <span className="text-highlight-blue">{walletName}</span>
             <span className="ml-2 text-xs block text-highlight-blue font-mono truncate flex items-center">
-              {/* Remove copy functionality: just show wallet address without CopyTooltip */}
-              <span>{walletAddress}</span>
+              {/* Clickable wallet address only, no tooltip on hover */}
+              <span
+                className="cursor-pointer hover:underline"
+                title="Copy address"
+                tabIndex={0}
+                onClick={handleCopyWalletAddress}
+                style={{ userSelect: "all" }}
+              >
+                {walletAddress}
+              </span>
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -72,13 +84,34 @@ export default function WalletPnlDialog({
           <div>
             <h4 className="mb-2 mt-4 text-highlight-blue text-sm font-semibold">Summary</h4>
             <ul className="text-sm space-y-1 mb-4">
-              <li><span className="font-mono text-highlight-blue">Realized:</span> <span className="font-mono">{pnlData.summary.realized?.toFixed(2)}</span></li>
-              <li><span className="font-mono text-highlight-blue">Unrealized:</span> <span className="font-mono">{pnlData.summary.unrealized?.toFixed(2)}</span></li>
-              <li><span className="font-mono text-highlight-blue">Total:</span> <span className="font-mono">{pnlData.summary.total?.toFixed(2)}</span></li>
-              <li><span className="font-mono text-highlight-blue">Total Invested:</span> <span className="font-mono">{pnlData.summary.totalInvested?.toFixed(2)}</span></li>
-              <li><span className="font-mono text-highlight-blue">Avg. Buy Amt:</span> <span className="font-mono">{pnlData.summary.averageBuyAmount?.toFixed(2)}</span></li>
-              <li><span className="font-mono text-highlight-blue">Win %:</span> <span className="font-mono">{pnlData.summary.winPercentage?.toFixed(2)}%</span></li>
-              <li><span className="font-mono text-highlight-blue">Loss %:</span> <span className="font-mono">{pnlData.summary.lossPercentage?.toFixed(2)}%</span></li>
+              <li>
+                <span className="font-mono text-highlight-blue">Realized:</span>{" "}
+                <span className="font-mono">{pnlData.summary.realized?.toFixed(2)}</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Unrealized:</span>{" "}
+                <span className="font-mono">{pnlData.summary.unrealized?.toFixed(2)}</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Total:</span>{" "}
+                <span className="font-mono">{pnlData.summary.total?.toFixed(2)}</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Total Invested:</span>{" "}
+                <span className="font-mono">{pnlData.summary.totalInvested?.toFixed(2)}</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Avg. Buy Amt:</span>{" "}
+                <span className="font-mono">{pnlData.summary.averageBuyAmount?.toFixed(2)}</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Win %:</span>{" "}
+                <span className="font-mono">{pnlData.summary.winPercentage?.toFixed(2)}%</span>
+              </li>
+              <li>
+                <span className="font-mono text-highlight-blue">Loss %:</span>{" "}
+                <span className="font-mono">{pnlData.summary.lossPercentage?.toFixed(2)}%</span>
+              </li>
             </ul>
             <h4 className="mb-2 mt-2 text-highlight-blue text-sm font-semibold">Token PnL</h4>
             <div className="max-h-52 overflow-y-auto">
@@ -122,4 +155,3 @@ export default function WalletPnlDialog({
     </Dialog>
   );
 }
-
