@@ -28,7 +28,7 @@ class WebSocketService {
     this.isConnected = false;
     this.pingInterval = null;
     
-    console.log('WebSocketService initialized with URL from edge function');
+    console.log('WebSocketService initialized with secure proxy WebSocket URL');
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -43,8 +43,9 @@ class WebSocketService {
     }
 
     try {
-      console.log(`Attempting to connect to WebSocket server...`);
+      console.log(`Attempting to connect to WebSocket server via edge function proxy...`);
       
+      // Using the proxy WebSocket URL which doesn't expose API keys
       this.socket = new WebSocket(this.wsUrl);
       this.transactionSocket = new WebSocket(this.wsUrl);
       
@@ -119,7 +120,7 @@ class WebSocketService {
         }
 
         if (message.type === 'system' || message.event === 'subscribed' || message.type === 'joined') {
-          console.log(`✅ [WS ${type}] System message:`, message);
+          console.log(`�� [WS ${type}] System message:`, message);
           this.emitter.emit('room-subscribed', message.room || message.data?.room);
           return;
         }

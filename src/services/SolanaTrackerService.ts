@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -166,9 +167,15 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
 
 export const getWebSocketUrl = async () => {
   try {
-    const { data } = await supabase.functions.invoke('solana-tracker', {
+    const { data, error } = await supabase.functions.invoke('solana-tracker', {
       body: { getWsUrl: true }
     });
+    
+    if (error) {
+      console.error('Error fetching WebSocket URL:', error);
+      throw error;
+    }
+    
     return data?.wsUrl;
   } catch (error) {
     console.error('Error fetching WebSocket URL:', error);

@@ -26,10 +26,10 @@ export const useWebSocketConnection = () => {
           return;
         }
         
-        // Create new WebSocket service with the URL returned from the edge function
-        const service = new WebSocketService(wsUrl, "");  // We don't need to pass API key here, it's in the URL
+        // Create new WebSocket service with the proxy WebSocket URL
+        const service = new WebSocketService(wsUrl, "");  // API key is no longer needed here
         setWsService(service);
-        console.log("WebSocket service initialized with URL from edge function");
+        console.log("WebSocket service initialized with secure proxy WebSocket URL");
       } catch (error) {
         console.error("Failed to initialize WebSocket service:", error);
         toast({

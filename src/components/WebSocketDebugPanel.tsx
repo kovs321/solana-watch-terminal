@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardHeader, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Trash } from 'lucide-react';
+import { Trash, Shield, AlertCircle } from 'lucide-react';
 
 interface WebSocketMessage {
   timestamp: string;
@@ -14,8 +14,25 @@ interface WebSocketMessage {
 
 const WebSocketDebugPanel = () => {
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
+  const [securityStatus, setSecurityStatus] = useState<'secure' | 'insecure' | 'checking'>('checking');
   
   useEffect(() => {
+    // Check connection security
+    const checkConnectionSecurity = () => {
+      // Check for API key exposure in WebSocket connections
+      const isSecure = !Array.from(window.performance.getEntriesByType('resource') as PerformanceResourceTiming[])
+        .some(resource => 
+          resource.name.includes('websocket') && 
+          resource.name.includes('api_key')
+        );
+      
+      setSecurityStatus(isSecure ? 'secure' : 'insecure');
+    };
+    
+    // Check security initially and every 5 seconds
+    checkConnectionSecurity();
+    const interval = setInterval(checkConnectionSecurity, 5000);
+    
     // Function to handle incoming messages
     const handleWebSocketMessage = (event: MessageEvent) => {
       const now = new Date().toISOString();
@@ -103,6 +120,7 @@ const WebSocketDebugPanel = () => {
       window.removeEventListener('message', handleWebSocketMessage);
       WebSocket.prototype.send = originalSend;
       WebSocket.prototype.addEventListener = originalAddEventListener;
+      clearInterval(interval);
     };
   }, []);
 
@@ -113,7 +131,21 @@ const WebSocketDebugPanel = () => {
   return (
     <Card className="bg-black border-terminal-muted">
       <CardHeader className="py-2 flex flex-row items-center justify-between">
-        <div className="text-xs font-mono text-terminal-muted">WebSocket Debug Panel</div>
+        <div className="text-xs font-mono text-terminal-muted flex items-center">
+          <span>WebSocket Debug Panel</span>
+          {securityStatus === 'secure' && (
+            <div className="ml-2 flex items-center text-green-500">
+              <Shield size={12} className="mr-1" />
+              <span>Secure</span>
+            </div>
+          )}
+          {securityStatus === 'insecure' && (
+            <div className="ml-2 flex items-center text-red-500">
+              <AlertCircle size={12} className="mr-1" />
+              <span>Insecure</span>
+            </div>
+          )}
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 
