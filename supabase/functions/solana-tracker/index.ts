@@ -16,7 +16,16 @@ serve(async (req) => {
   }
 
   try {
-    const { walletAddress, cursor } = await req.json()
+    const body = await req.json()
+    
+    // If request is just to get WebSocket URL
+    if (body.getWsUrl) {
+      return new Response(JSON.stringify({ wsUrl: SOLANA_TRACKER_WS_URL }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { walletAddress, cursor } = body
     const url = new URL(`/wallet/${walletAddress}/trades`, 'https://data.solanatracker.io')
     if (cursor) {
       url.searchParams.append('cursor', cursor.toString())

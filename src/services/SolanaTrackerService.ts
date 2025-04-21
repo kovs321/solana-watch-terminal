@@ -1,11 +1,8 @@
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const BASE_URL = 'https://data.solanatracker.io';
-const WS_URL = 'wss://datastream.solanatracker.io/6332a381-1d02-45e9-b9d1-fa797b304a40';
-const API_KEY = '7e869836-9708-43e2-bb2e-1c11959d306a';
 
-// Types for API responses
 export interface TokenInfo {
   name: string;
   symbol: string;
@@ -73,7 +70,6 @@ export interface WalletTradeResponse {
   hasNextPage: boolean;
 }
 
-// Get wallet trades
 export const getWalletTrades = async (walletAddress: string, cursor?: number) => {
   try {
     console.log(`Fetching trades for wallet: ${walletAddress}`);
@@ -100,7 +96,15 @@ export const getWalletTrades = async (walletAddress: string, cursor?: number) =>
   }
 };
 
-// Generate a simulated trade for testing
+export const formatTradeDate = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+};
+
+export const formatAmount = (amount: number, decimals: number = 6) => {
+  return amount.toFixed(decimals);
+};
+
 export const simulateTrade = (walletAddress: string, walletName?: string): TradeInfo => {
   const randomTokens = [
     { name: 'Solana', symbol: 'SOL', image: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', decimals: 9 },
@@ -160,16 +164,14 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
   };
 };
 
-// Export constants for WebSocket connection
-export { WS_URL, API_KEY };
-
-// Format date from timestamp
-export const formatTradeDate = (timestamp: number) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
-};
-
-// Format amount with appropriate decimals
-export const formatAmount = (amount: number, decimals: number = 6) => {
-  return amount.toFixed(decimals);
+export const getWebSocketUrl = async () => {
+  try {
+    const { data } = await supabase.functions.invoke('solana-tracker', {
+      body: { getWsUrl: true }
+    });
+    return data?.wsUrl;
+  } catch (error) {
+    console.error('Error fetching WebSocket URL:', error);
+    return null;
+  }
 };
