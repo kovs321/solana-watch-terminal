@@ -6,7 +6,6 @@ import { SolanaTransaction } from "@/types/transactions";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import CopyTooltip from "./CopyTooltip";
 import WalletPnlDialog from "./WalletPnlDialog";
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
 const SOL_ADDRESS_TO_EXCLUDE_COPY = "So11111111111111111111111111111111111111112";
@@ -36,6 +35,8 @@ const TransactionTable = () => {
   const handleWalletClick = async (walletAddress: string, walletName?: string) => {
     if (!walletAddress) return;
     
+    console.log("Fetching PnL for wallet:", walletAddress, walletName);
+    
     const displayName = walletName || walletAddress.slice(0, 4) + "..." + walletAddress.slice(-4);
     
     setSelectedWallet({
@@ -49,18 +50,24 @@ const TransactionTable = () => {
 
     try {
       const url = `${API_URL}/${encodeURIComponent(walletAddress)}`;
+      console.log("Fetching PnL data from:", url);
+      
       const resp = await fetch(url, {
         headers: {
           'x-api-key': API_KEY
         }
       });
+      
       if (!resp.ok) {
         throw new Error(`Failed to fetch PnL: ${resp.statusText}`);
       }
+      
       const respData = await resp.json();
+      console.log("PnL data received:", respData);
       setPnlData(respData);
+      
     } catch (err: any) {
-      console.error(err);
+      console.error("PnL fetch error:", err);
       setPnlError(err.message || 'Failed to fetch wallet PnL');
     } finally {
       setPnlLoading(false);
@@ -159,14 +166,14 @@ const TransactionTable = () => {
                   {tx.walletName ? (
                     <button 
                       onClick={() => handleWalletClick(tx.walletAddress, tx.walletName)}
-                      className="hover:text-highlight-blue hover:underline cursor-pointer"
+                      className="hover:text-highlight-blue hover:underline cursor-pointer focus:outline-none focus:ring-1 focus:ring-highlight-blue rounded px-1"
                     >
                       {tx.walletName}
                     </button>
                   ) : tx.walletAddress ? (
                     <button
                       onClick={() => handleWalletClick(tx.walletAddress)}
-                      className="hover:text-highlight-blue hover:underline cursor-pointer"
+                      className="hover:text-highlight-blue hover:underline cursor-pointer focus:outline-none focus:ring-1 focus:ring-highlight-blue rounded px-1"
                     >
                       {tx.walletAddress.slice(0, 4) + "..." + tx.walletAddress.slice(-4)}
                     </button>
