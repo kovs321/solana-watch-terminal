@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import CopyTooltip from "./CopyTooltip";
 
 interface TokenPnl {
   holding: number;
@@ -60,19 +59,8 @@ export default function WalletPnlDialog({
               {walletName}
             </span>
             <span className="ml-2 text-xs block text-highlight-blue font-mono truncate flex items-center">
-              {/* Wallet address with copy option only in dialog */}
-              <CopyTooltip
-                value={walletAddress}
-                display={
-                  <>
-                    <span>{walletAddress}</span>
-                    <span style={{ color: "#526FFF", marginLeft: 4, display: "inline-flex", alignItems: "center" }}>
-                      {/* The Copy icon will inherit this color in the CopyTooltip */}
-                    </span>
-                  </>
-                }
-                tooltipLabel="Copy wallet address"
-              />
+              {/* Remove copy functionality: just show wallet address without CopyTooltip */}
+              <span>{walletAddress}</span>
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -134,3 +122,4 @@ export default function WalletPnlDialog({
     </Dialog>
   );
 }
+
