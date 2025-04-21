@@ -108,10 +108,24 @@ const WebSocketDebugPanel = () => {
       }
     };
 
+    // Direct hook into any existing WebSocket's onmessage
+    if (window.WebSocket) {
+      const originalOnMessage = WebSocket.prototype.onmessage;
+      WebSocket.prototype.onmessage = function(event) {
+        if (originalOnMessage) {
+          originalOnMessage.call(this, event);
+        }
+        handleWebSocketMessage(event);
+      };
+    }
+
     return () => {
       window.removeEventListener('message', handleWebSocketMessage);
       WebSocket.prototype.send = originalSend;
       WebSocket.prototype.addEventListener = originalAddEventListener;
+      if (window.WebSocket) {
+        WebSocket.prototype.onmessage = originalOnMessage;
+      }
     };
   }, []);
 
@@ -123,19 +137,41 @@ const WebSocketDebugPanel = () => {
   const isTransactionRelated = (message: WebSocketMessage): boolean => {
     const { data, type } = message;
     
-    // Check if it's a system message (ping/pong)
+    // Skip system messages, ping/pong, etc.
     if (type === 'ping' || type === 'pong' || type === 'system' || type === 'join') {
       return false;
     }
     
-    // Check for transaction-related fields
+    // Check for transaction-related fields in the data object
     if (data.tx || 
         data.type === 'buy' || 
         data.type === 'sell' || 
         data.wallet || 
         data.from || 
         data.to ||
-        (data.data && (data.data.tx || data.data.wallet || data.room?.startsWith('wallet:')))
+        data.amount ||
+        data.token ||
+        data.priceUsd ||
+        (data.data && (
+          data.data.tx || 
+          data.data.wallet || 
+          data.data.token ||
+          data.data.type === 'buy' || 
+          data.data.type === 'sell' ||
+          data.room?.startsWith('wallet:')
+        ))
+    ) {
+      return true;
+    }
+    
+    // Check if it's a message object with transaction data
+    if (
+      data.room?.startsWith('wallet:') || 
+      (data.message?.data && 
+       (data.message.data.tx || 
+        data.message.data.wallet ||
+        data.message.data.type === 'buy' || 
+        data.message.data.type === 'sell'))
     ) {
       return true;
     }
