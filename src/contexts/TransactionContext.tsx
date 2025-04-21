@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import { getWalletTrades, simulateTrade } from '@/services/SolanaTrackerService';
@@ -8,6 +7,7 @@ import { useTradeProcessor } from '@/hooks/useTradeProcessor';
 import { SolanaTransaction, TransactionContextType } from '@/types/transactions';
 import { TradeInfo } from '@/services/SolanaTrackerService';
 import { supabase } from '@/integrations/supabase/client';
+import { useRawWebSocketContext } from "./RawWebSocketContext";
 
 const TransactionContext = createContext<TransactionContextType | null>(null);
 
@@ -28,6 +28,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
   const { wsService, isConnected, wsStatus } = useWebSocketConnection();
   const { convertTradeToTransaction } = useTradeProcessor();
+  const { pushRawMessage } = useRawWebSocketContext();
   const [monitoringActive, setMonitoringActive] = useState(false);
   const [connectedWallets, setConnectedWallets] = useState<string[]>([]);
 
@@ -38,6 +39,9 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
       console.warn("Invalid trade data received:", trade);
       return;
     }
+
+    // PUSH THE RAW DATA BEFORE MUNGING IT
+    pushRawMessage(trade);
 
     try {
       const wallet = wallets.find(w => w.address.toLowerCase() === trade.wallet?.toLowerCase());
@@ -55,7 +59,7 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     } catch (error) {
       console.error("Error processing transaction:", error);
     }
-  }, [wallets, convertTradeToTransaction]);
+  }, [wallets, convertTradeToTransaction, pushRawMessage]);
 
   const startMonitoringAllWallets = useCallback(async () => {
     if (!wsService || !isConnected) {
