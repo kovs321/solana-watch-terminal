@@ -2,7 +2,6 @@ import EventEmitter from "eventemitter3";
 
 class WebSocketService {
   wsUrl: string;
-  apiKey: string;
   socket: WebSocket | null;
   transactionSocket: WebSocket | null;
   reconnectAttempts: number;
@@ -17,7 +16,6 @@ class WebSocketService {
 
   constructor(wsUrl: string, apiKey: string) {
     this.wsUrl = wsUrl;
-    this.apiKey = apiKey;
     this.socket = null;
     this.transactionSocket = null;
     this.reconnectAttempts = 0;
@@ -30,7 +28,7 @@ class WebSocketService {
     this.isConnected = false;
     this.pingInterval = null;
     
-    console.log('WebSocketService initialized with URL:', wsUrl);
+    console.log('WebSocketService initialized with URL from edge function');
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -45,11 +43,10 @@ class WebSocketService {
     }
 
     try {
-      const authenticatedUrl = `${this.wsUrl}?api_key=${this.apiKey}`;
-      console.log(`Attempting to connect to WebSocket server at ${this.wsUrl}...`);
+      console.log(`Attempting to connect to WebSocket server...`);
       
-      this.socket = new WebSocket(authenticatedUrl);
-      this.transactionSocket = new WebSocket(authenticatedUrl);
+      this.socket = new WebSocket(this.wsUrl);
+      this.transactionSocket = new WebSocket(this.wsUrl);
       
       console.log('WebSocket instances created, setting up listeners');
       this.setupSocketListeners(this.socket, "main");
@@ -291,7 +288,7 @@ class WebSocketService {
       mainSocketState: this.socket?.readyState,
       transactionSocketState: this.transactionSocket?.readyState,
       subscribedRooms: Array.from(this.subscribedRooms),
-      authenticated: !!this.apiKey
+      authenticated: true
     };
   }
 

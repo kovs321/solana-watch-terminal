@@ -20,7 +20,9 @@ serve(async (req) => {
     
     // If request is just to get WebSocket URL
     if (body.getWsUrl) {
-      return new Response(JSON.stringify({ wsUrl: SOLANA_TRACKER_WS_URL }), {
+      // Append API key to WebSocket URL to create an authenticated URL
+      const authenticatedWsUrl = `${SOLANA_TRACKER_WS_URL}?api_key=${SOLANA_TRACKER_API_KEY}`
+      return new Response(JSON.stringify({ wsUrl: authenticatedWsUrl }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -43,7 +45,7 @@ serve(async (req) => {
       trades: data.trades,
       nextCursor: data.nextCursor,
       hasNextPage: data.hasNextPage,
-      wsUrl: SOLANA_TRACKER_WS_URL
+      wsUrl: `${SOLANA_TRACKER_WS_URL}?api_key=${SOLANA_TRACKER_API_KEY}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
