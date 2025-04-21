@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
@@ -7,10 +7,10 @@ import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from '@/components/ui/button';
-import { Radio, FileSpreadsheet, TrendingUp } from 'lucide-react';
+import { Radio, FileSpreadsheet } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TERMINAL_ASCII = `
  ______  __    __   ______   ______  _______   ________  _______  
@@ -160,16 +160,6 @@ const Index = () => {
             <ConnectWallet />
             <MonitoringButton />
             <ExportWalletsCSVButton />
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="ml-2 flex items-center gap-1 font-mono bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
-              onClick={() => navigate('/leaderboard')}
-              title="View wallet leaderboard"
-            >
-              <TrendingUp size={14} />
-              Leaderboard
-            </Button>
           </div>
           <AutoMonitorTrigger />
 
