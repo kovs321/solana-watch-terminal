@@ -1,4 +1,3 @@
-
 import { FC, ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useWalletContext } from './WalletContext';
 import { getWalletTrades, simulateTrade } from '@/services/SolanaTrackerService';
@@ -26,7 +25,7 @@ interface TransactionProviderProps {
 export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) => {
   const { wallets } = useWalletContext();
   const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
-  const { wsService, isConnected, wsStatus } = useWebSocketConnection();
+  const { wsService, isConnected, wsStatus, lastError, reinitialize: reinitializeConnection } = useWebSocketConnection();
   const { convertTradeToTransaction } = useTradeProcessor();
   const [monitoringActive, setMonitoringActive] = useState(false);
   const [connectedWallets, setConnectedWallets] = useState<string[]>([]);
@@ -274,6 +273,8 @@ export const TransactionProvider: FC<TransactionProviderProps> = ({ children }) 
     clearTransactions,
     isConnected,
     wsStatus,
+    lastError,
+    reinitializeConnection,
     generateTestTransaction,
     subscribeToTestWallet,
     startMonitoringAllWallets,

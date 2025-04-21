@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -167,18 +166,30 @@ export const simulateTrade = (walletAddress: string, walletName?: string): Trade
 
 export const getWebSocketUrl = async () => {
   try {
+    console.log("Requesting WebSocket URL from edge function");
     const { data, error } = await supabase.functions.invoke('solana-tracker', {
       body: { getWsUrl: true }
     });
     
     if (error) {
-      console.error('Error fetching WebSocket URL:', error);
-      throw error;
+      console.error('Error fetching WebSocket URL from edge function:', error);
+      return { error: error.message };
     }
     
-    return data?.wsUrl;
+    if (!data || !data.wsUrl) {
+      console.error('No WebSocket URL returned from edge function:', data);
+      return { 
+        error: 'Invalid response from server', 
+        configValid: data?.configValid 
+      };
+    }
+    
+    return data;
   } catch (error) {
-    console.error('Error fetching WebSocket URL:', error);
-    return null;
+    console.error('Exception fetching WebSocket URL:', error);
+    return { 
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    };
   }
 };

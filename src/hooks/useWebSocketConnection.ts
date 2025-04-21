@@ -9,37 +9,45 @@ export const useWebSocketConnection = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [wsStatus, setWsStatus] = useState({});
   const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const initWebSocket = useCallback(async () => {
     try {
       console.log("Initializing WebSocket connection...");
       
       // Get WebSocket URL from the edge function
-      const wsUrl = await getWebSocketUrl();
+      const response = await getWebSocketUrl();
       
-      if (!wsUrl) {
-        console.error("Failed to get WebSocket URL from the edge function");
+      if (!response || !response.wsUrl) {
+        console.error("Failed to get WebSocket URL from the edge function", response);
+        const errorDetails = response?.error ? `: ${response.error}` : '';
+        const configInfo = response?.configValid === false ? " (API configuration invalid)" : "";
+        
+        setLastError(`WebSocket URL retrieval failed${errorDetails}${configInfo}`);
+        
         toast({
           title: "WebSocket Configuration Error",
-          description: "Failed to get WebSocket URL. Please check the console for details.",
+          description: `Failed to get WebSocket URL${configInfo}. Please check that API keys are valid.`,
           variant: "destructive"
         });
         return null;
       }
       
-      console.log("Received WebSocket URL:", wsUrl);
+      console.log("Received WebSocket URL:", response.wsUrl);
       
       // Create new WebSocket service with the proxy WebSocket URL
-      const service = new WebSocketService(wsUrl, "");  // API key is no longer needed here
+      const service = new WebSocketService(response.wsUrl, "");  // API key is no longer needed here
       setWsService(service);
       console.log("WebSocket service initialized with proxy WebSocket URL");
       
       return service;
     } catch (error) {
       console.error("Failed to initialize WebSocket service:", error);
+      setLastError(error instanceof Error ? error.message : String(error));
+      
       toast({
         title: "WebSocket Error",
-        description: "Failed to initialize WebSocket connection",
+        description: "Failed to initialize WebSocket connection. Please check console for details.",
         variant: "destructive"
       });
       return null;
@@ -78,11 +86,19 @@ export const useWebSocketConnection = () => {
         });
       } else {
         setConnectionAttempts(0);
+        setLastError(null); // Clear error when successfully connected
       }
     }, 1000);
     
     return () => clearInterval(statusInterval);
   }, [wsService, initWebSocket]);
 
-  return { wsService, isConnected, wsStatus };
+  return { 
+    wsService, 
+    isConnected, 
+    wsStatus, 
+    lastError,
+    connectionAttempts,
+    reinitialize: initWebSocket 
+  };
 };
