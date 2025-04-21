@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Terminal from '@/components/Terminal';
@@ -8,7 +7,7 @@ import WalletList from '@/components/WalletList';
 import { useInitialWallets } from '@/hooks/useInitialWallets';
 import { TransactionProvider, useTransactionContext } from '@/contexts/TransactionContext';
 import { Button } from '@/components/ui/button';
-import { Radio, FileSpreadsheet, TrendingUp } from 'lucide-react';
+import { Radio, FileSpreadsheet, TrendingUp, Twitter } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,11 +164,11 @@ const Index = () => {
               variant="outline" 
               size="sm" 
               className="ml-2 flex items-center gap-1 font-mono bg-terminal-background border-terminal-muted hover:bg-gray-800 text-xs"
-              onClick={() => navigate('/leaderboard')}
-              title="View wallet leaderboard"
+              onClick={() => window.open('https://x.com/insider_fun', '_blank')}
+              title="Follow us on Twitter"
             >
-              <TrendingUp size={14} />
-              Leaderboard
+              <Twitter size={14} />
+              Twitter
             </Button>
           </div>
           <AutoMonitorTrigger />
