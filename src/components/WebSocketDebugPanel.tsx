@@ -44,8 +44,12 @@ const WebSocketDebugPanel = () => {
       }
     };
 
-    // Override the WebSocket.prototype.send method to intercept outgoing messages
+    // We need to store references to the original methods
     const originalSend = WebSocket.prototype.send;
+    const originalAddEventListener = WebSocket.prototype.addEventListener;
+    const originalOnMessage = WebSocket.prototype.onmessage;
+
+    // Override the WebSocket.prototype.send method to intercept outgoing messages
     WebSocket.prototype.send = function(data: string | ArrayBuffer | Blob | ArrayBufferView) {
       const now = new Date().toISOString();
       if (typeof data === 'string') {
@@ -80,38 +84,33 @@ const WebSocketDebugPanel = () => {
           data: { type: 'Binary data' }
         }, ...prev].slice(0, 100));
       }
-      return originalSend.call(this, data);
+      return originalSend.apply(this, [data]);
     };
 
-    // Monitor both the message event on window and directly on WebSockets
-    window.addEventListener('message', handleWebSocketMessage);
-    
     // Add an enhanced message listener to all WebSocket instances
-    const originalAddEventListener = WebSocket.prototype.addEventListener;
     WebSocket.prototype.addEventListener = function(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
       if (type === 'message') {
-        const wrappedListener = function(event: MessageEvent) {
+        const wrappedListener = function(this: WebSocket, event: MessageEvent) {
           // Call the original listener
           if (typeof listener === 'function') {
             listener.call(this, event);
           } else if (listener && typeof listener.handleEvent === 'function') {
-            listener.handleEvent(event);
+            listener.handleEvent.call(listener, event);
           }
           
           // Also log the message in our panel
           handleWebSocketMessage(event);
         };
         
-        return originalAddEventListener.call(this, type, wrappedListener as EventListener, options);
+        return originalAddEventListener.apply(this, [type, wrappedListener as EventListener, options]);
       } else {
-        return originalAddEventListener.call(this, type, listener, options);
+        return originalAddEventListener.apply(this, [type, listener, options]);
       }
     };
 
     // Direct hook into any existing WebSocket's onmessage
     if (window.WebSocket) {
-      const originalOnMessage = WebSocket.prototype.onmessage;
-      WebSocket.prototype.onmessage = function(event) {
+      WebSocket.prototype.onmessage = function(this: WebSocket, event: MessageEvent) {
         if (originalOnMessage) {
           originalOnMessage.call(this, event);
         }
@@ -119,7 +118,11 @@ const WebSocketDebugPanel = () => {
       };
     }
 
+    // Monitor messages on window
+    window.addEventListener('message', handleWebSocketMessage);
+    
     return () => {
+      // Clean up by restoring original methods
       window.removeEventListener('message', handleWebSocketMessage);
       WebSocket.prototype.send = originalSend;
       WebSocket.prototype.addEventListener = originalAddEventListener;
