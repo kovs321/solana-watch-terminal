@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -26,14 +25,15 @@ export default {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         terminal: {
-          background: '#031e13', // Panel backgrounds, even darker than base
+          background: '#031e13',
           text: '#16fa7e',
           highlight: '#16fa7e',
           success: '#16fa7e',
-          error: '#d83c36',     // retro red for errors
-          warning: '#ffe066',   // gentle yellow for warnings
-          muted: '#129463',     // green for borders and muted lines
+          error: '#d83c36',
+          warning: '#ffe066',
+          muted: '#129463',
         },
+        highlightBlue: 'rgb(var(--highlight-blue))',
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))'
@@ -88,10 +88,9 @@ export default {
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out'
+        'accordion-up': 'accordion-up 0.2s ease-out',
       }
     }
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require('tailwindcss-animate')],
 } satisfies Config;
-

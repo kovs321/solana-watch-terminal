@@ -79,7 +79,7 @@ const AddWalletForm: React.FC = () => {
 
   return (
     <div className="bg-terminal-background text-terminal-text rounded-md shadow-lg border border-gray-800 p-4 my-4 w-full max-w-md">
-      <h2 className="text-terminal-highlight font-mono text-sm mb-3 border-b border-gray-800 pb-2">
+      <h2 className="text-highlight-blue font-mono text-sm mb-3 border-b border-gray-800 pb-2">
         Add Wallet to Track
       </h2>
       
@@ -114,7 +114,7 @@ const AddWalletForm: React.FC = () => {
         
         <Button 
           type="submit" 
-          className="w-full bg-terminal-highlight hover:bg-terminal-highlight/80 text-white font-mono"
+          className="w-full bg-highlight-blue hover:bg-highlight-blue/80 text-white font-mono"
           disabled={isSubmitting}
         >
           {isSubmitting ? "Adding..." : "Add Wallet"}
