@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Terminal from '@/components/Terminal';
 import ConnectWallet from '@/components/ConnectWallet';
 import AddWalletForm from '@/components/AddWalletForm';
