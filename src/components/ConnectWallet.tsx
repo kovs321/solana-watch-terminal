@@ -3,6 +3,7 @@ import React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const PHANTOM_INSTALL_URL = 'https://phantom.app/download';
 
@@ -40,14 +41,21 @@ const ConnectWallet: React.FC = () => {
           Disconnect
         </Button>
       ) : (
-        <Button
-          variant="default"
-          className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
-          onClick={handleConnect}
-        >
-          <LogIn size={16} className="mr-2" />
-          Connect Wallet
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="default"
+              className="bg-terminal-highlight text-black font-mono rounded-md shadow-md px-4 py-2 h-auto flex items-center border border-terminal-highlight hover:bg-terminal-success/90"
+              onClick={handleConnect}
+            >
+              <LogIn size={16} className="mr-2" />
+              Connect Wallet
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="center">
+            You will be able to add a wallet to the tracking list if you connect wallet
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   );
