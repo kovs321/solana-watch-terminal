@@ -28,7 +28,7 @@ class WebSocketService {
     this.isConnected = false;
     this.pingInterval = null;
     
-    console.log('WebSocketService initialized with secure proxy WebSocket URL');
+    console.log('WebSocketService initialized with URL:', wsUrl);
     this.connect();
 
     if (typeof window !== "undefined") {
@@ -37,15 +37,26 @@ class WebSocketService {
   }
 
   async connect() {
-    if (this.socket && this.transactionSocket) {
-      console.log('WebSockets already connected, skipping connection');
+    if (this.socket && this.socket.readyState === WebSocket.OPEN && 
+        this.transactionSocket && this.transactionSocket.readyState === WebSocket.OPEN) {
+      console.log('WebSockets already connected and open, skipping connection');
       return;
     }
 
     try {
-      console.log(`Attempting to connect to WebSocket server via edge function proxy...`);
+      console.log(`Attempting to connect to WebSocket server at: ${this.wsUrl}`);
       
-      // Using the proxy WebSocket URL which doesn't expose API keys
+      // Disconnect existing connections if they exist
+      if (this.socket) {
+        console.log('Closing existing main socket connection');
+        this.socket.close();
+      }
+      if (this.transactionSocket) {
+        console.log('Closing existing transaction socket connection');
+        this.transactionSocket.close();
+      }
+      
+      // Create new WebSocket connections
       this.socket = new WebSocket(this.wsUrl);
       this.transactionSocket = new WebSocket(this.wsUrl);
       
@@ -120,7 +131,7 @@ class WebSocketService {
         }
 
         if (message.type === 'system' || message.event === 'subscribed' || message.type === 'joined') {
-          console.log(`�� [WS ${type}] System message:`, message);
+          console.log(`🔔 [WS ${type}] System message:`, message);
           this.emitter.emit('room-subscribed', message.room || message.data?.room);
           return;
         }
@@ -244,6 +255,7 @@ class WebSocketService {
     if (socket.readyState !== WebSocket.OPEN) {
       console.warn(`[WebSocket] Socket not ready for room: ${room}. State: ${socket.readyState}, will queue for later`);
       this.subscribedRooms.add(room);
+      this.connect(); // Try to reconnect if socket is not open
       return;
     }
     
@@ -296,12 +308,17 @@ class WebSocketService {
   resubscribeToRooms() {
     console.log(`Resubscribing to ${this.subscribedRooms.size} rooms`);
     
-    if (
-      this.socket &&
-      this.socket.readyState === WebSocket.OPEN &&
-      this.transactionSocket &&
-      this.transactionSocket.readyState === WebSocket.OPEN
-    ) {
+    if (this.socket && this.transactionSocket) {
+      const mainSocketReady = this.socket.readyState === WebSocket.OPEN;
+      const transactionSocketReady = this.transactionSocket.readyState === WebSocket.OPEN;
+      
+      if (!mainSocketReady || !transactionSocketReady) {
+        console.warn("Cannot resubscribe to rooms, sockets not ready");
+        console.log("Main socket state:", this.socket?.readyState);
+        console.log("Transaction socket state:", this.transactionSocket?.readyState);
+        return;
+      }
+      
       for (const room of this.subscribedRooms) {
         const socket = room.startsWith("wallet:") || room.includes("transaction")
           ? this.transactionSocket
@@ -314,9 +331,7 @@ class WebSocketService {
       
       this.startPingInterval();
     } else {
-      console.warn("Cannot resubscribe to rooms, sockets not ready");
-      console.log("Main socket state:", this.socket?.readyState);
-      console.log("Transaction socket state:", this.transactionSocket?.readyState);
+      console.warn("Cannot resubscribe to rooms, sockets not initialized");
     }
   }
 }

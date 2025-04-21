@@ -17,13 +17,98 @@ serve(async (req) => {
   }
 
   try {
+    // Check if this is a WebSocket upgrade request
+    const upgradeHeader = req.headers.get('upgrade') || ''
+    if (upgradeHeader.toLowerCase() === 'websocket') {
+      console.log("WebSocket upgrade request detected")
+      
+      if (!SOLANA_TRACKER_WS_URL || !SOLANA_TRACKER_API_KEY) {
+        console.error("Missing required environment variables for WebSocket proxy")
+        return new Response(JSON.stringify({ error: "Server configuration error" }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      
+      try {
+        // Format the actual WebSocket URL with API key
+        const actualWsUrl = `${SOLANA_TRACKER_WS_URL}?api_key=${SOLANA_TRACKER_API_KEY}`
+        console.log("Creating proxy WebSocket connection")
+        
+        // Upgrade the connection
+        const { socket, response } = Deno.upgradeWebSocket(req)
+        console.log("Client WebSocket connection upgraded")
+        
+        // Connect to the target WebSocket
+        const targetSocket = new WebSocket(actualWsUrl)
+        console.log("Target WebSocket connection initiated")
+        
+        // Set up event handlers
+        targetSocket.onopen = () => {
+          console.log("Target WebSocket connection opened successfully")
+        }
+        
+        socket.onmessage = (event) => {
+          console.log("Message from client:", typeof event.data === 'string' ? event.data.substring(0, 100) : "[binary data]")
+          if (targetSocket.readyState === WebSocket.OPEN) {
+            targetSocket.send(event.data)
+          }
+        }
+        
+        targetSocket.onmessage = (event) => {
+          console.log("Message from target:", typeof event.data === 'string' ? event.data.substring(0, 100) : "[binary data]")
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(event.data)
+          }
+        }
+        
+        socket.onclose = (event) => {
+          console.log(`Client socket closed: code=${event.code}, reason=${event.reason}`)
+          if (targetSocket.readyState === WebSocket.OPEN) {
+            targetSocket.close()
+          }
+        }
+        
+        targetSocket.onclose = (event) => {
+          console.log(`Target socket closed: code=${event.code}, reason=${event.reason}`)
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.close()
+          }
+        }
+        
+        socket.onerror = (error) => {
+          console.error('Client socket error:', error)
+          if (targetSocket.readyState === WebSocket.OPEN) {
+            targetSocket.close()
+          }
+        }
+        
+        targetSocket.onerror = (error) => {
+          console.error('Target socket error:', error)
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.close()
+          }
+        }
+        
+        return response
+      } catch (wsError) {
+        console.error("WebSocket connection error:", wsError)
+        return new Response(JSON.stringify({ error: "WebSocket connection failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+    
+    // Handle regular HTTP requests
     const body = await req.json()
     
     // If request is just to get WebSocket URL
     if (body.getWsUrl) {
-      const reqUrl = new URL(req.url);
-      const proxyWsUrl = `wss://${reqUrl.hostname}/functions/v1/solana-tracker`;
+      const reqUrl = new URL(req.url)
+      const proxyWsUrl = `wss://${reqUrl.hostname}/functions/v1/solana-tracker`
       
+      console.log("Returning proxy WebSocket URL:", proxyWsUrl)
       return new Response(JSON.stringify({ wsUrl: proxyWsUrl }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -53,56 +138,6 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-    }
-
-    // WebSocket connection upgrade handling
-    const upgradeHeader = req.headers.get('upgrade') || ''
-    if (upgradeHeader.toLowerCase() === 'websocket') {
-      // Create secure WebSocket connection without exposing API key in URL
-      const { socket, response } = Deno.upgradeWebSocket(req);
-      const targetSocket = new WebSocket(SOLANA_TRACKER_WS_URL!);
-      
-      // Implement secure socket message forwarding
-      socket.onmessage = (event) => {
-        if (targetSocket.readyState === WebSocket.OPEN) {
-          targetSocket.send(event.data);
-        }
-      };
-      
-      targetSocket.onmessage = (event) => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(event.data);
-        }
-      };
-      
-      // Handle close and error events
-      socket.onclose = () => {
-        if (targetSocket.readyState === WebSocket.OPEN) {
-          targetSocket.close();
-        }
-      };
-      
-      targetSocket.onclose = () => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.close();
-        }
-      };
-      
-      socket.onerror = (error) => {
-        console.error('Client socket error:', error);
-        if (targetSocket.readyState === WebSocket.OPEN) {
-          targetSocket.close();
-        }
-      };
-      
-      targetSocket.onerror = (error) => {
-        console.error('Target socket error:', error);
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.close();
-        }
-      };
-      
-      return response;
     }
 
     return new Response(JSON.stringify({ error: 'Invalid request' }), {
